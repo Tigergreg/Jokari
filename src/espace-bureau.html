@@ -1,0 +1,965 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Espace bureau — Jokari Club Zürich</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lato:wght@300;400;700;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* ============= Header strip ============= */
+    .bureau-head {
+      background: #b53932;
+      color: #fff;
+      padding: 50px 0 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    .bureau-head::after {
+      content: "ADMIN · BUREAU";
+      position: absolute;
+      bottom: -32px;
+      right: 32px;
+      font-family: var(--serif, "Playfair Display", serif);
+      font-size: 140px;
+      font-style: italic;
+      letter-spacing: -0.04em;
+      color: rgba(255,255,255,0.06);
+      pointer-events: none;
+    }
+    .bureau-head-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 30px;
+      flex-wrap: wrap;
+      position: relative;
+    }
+    .bureau-head h1 {
+      font-family: var(--serif, serif);
+      font-size: 46px;
+      font-weight: 500;
+      letter-spacing: -0.015em;
+      margin: 0 0 6px;
+    }
+    .bureau-stamp {
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 14px;
+      display: block;
+    }
+    .bureau-back {
+      font-family: var(--mono, monospace);
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      color: rgba(255,255,255,0.85);
+      text-transform: uppercase;
+      text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 11px 18px;
+    }
+    .bureau-back:hover { background: rgba(255,255,255,0.1); }
+
+    /* ============= Tabs ============= */
+    .tabs {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 28px;
+      border-bottom: 1px solid rgba(26,23,20,0.12);
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      background: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .tab {
+      padding: 22px 24px 18px;
+      background: none;
+      border: none;
+      font-family: var(--mono, monospace);
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(26,23,20,0.5);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 7px;
+      margin-left: 8px;
+      background: #b53932;
+      color: #fff;
+      border-radius: 11px;
+      font-size: 10px;
+      letter-spacing: 0;
+    }
+    .tab .badge.zero { background: rgba(26,23,20,0.15); color: rgba(26,23,20,0.55); }
+    .tab.active { color: #1a2845; border-bottom-color: #1a2845; }
+    .tab:hover { color: #1a2845; }
+
+    .tab-body {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 48px 28px 110px;
+    }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* ============= Section title ============= */
+    .section-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 26px;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+    .section-title h2 {
+      font-family: var(--serif, serif);
+      font-size: 34px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      margin: 0;
+    }
+    .section-title .hint {
+      font-size: 13px;
+      color: rgba(26,23,20,0.6);
+      max-width: 480px;
+      line-height: 1.5;
+    }
+
+    /* ============= Pending article card ============= */
+    .pending-card {
+      background: #fff;
+      border: 1px solid rgba(26,23,20,0.12);
+      padding: 32px 36px;
+      margin-bottom: 22px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 28px;
+      align-items: start;
+    }
+    @media (max-width: 760px) {
+      .pending-card { grid-template-columns: 1fr; }
+    }
+    .pending-card .cat {
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      color: #b53932;
+      text-transform: uppercase;
+    }
+    .pending-card h3 {
+      font-family: var(--serif, serif);
+      font-size: 26px;
+      font-weight: 500;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+      margin: 8px 0 14px;
+    }
+    .pending-card .author-line {
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      color: rgba(26,23,20,0.55);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .pending-card .author-line strong { color: #1a2845; }
+    .pending-card .excerpt {
+      font-family: var(--serif, serif);
+      font-style: italic;
+      font-size: 17px;
+      line-height: 1.55;
+      color: rgba(26,23,20,0.78);
+      margin: 0 0 18px;
+      padding: 14px 18px;
+      border-left: 3px solid #d9b96b;
+      background: #f6f2ea;
+    }
+    .pending-card .body-preview {
+      font-size: 14px;
+      line-height: 1.65;
+      color: rgba(26,23,20,0.7);
+      max-height: 130px;
+      overflow: hidden;
+      position: relative;
+      margin: 0;
+    }
+    .pending-card .body-preview::after {
+      content: "";
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 50px;
+      background: linear-gradient(to bottom, rgba(255,255,255,0), #fff);
+    }
+    .pending-card .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 180px;
+    }
+    .btn-approve {
+      background: #2f6e3f;
+      color: #fff;
+      padding: 12px 18px;
+      border: none;
+      font-family: var(--mono, monospace);
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: pointer;
+      text-align: center;
+    }
+    .btn-approve:hover { background: #1f5a30; }
+    .btn-reject {
+      background: transparent;
+      color: #b53932;
+      padding: 12px 18px;
+      border: 1px solid #b53932;
+      font-family: var(--mono, monospace);
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .btn-reject:hover { background: #fbe6e3; }
+
+    /* ============= Empty state ============= */
+    .empty-state {
+      padding: 80px 40px;
+      text-align: center;
+      background: #f6f2ea;
+      border: 1px dashed rgba(26,23,20,0.15);
+    }
+    .empty-state .icon {
+      font-family: var(--serif, serif);
+      font-style: italic;
+      font-size: 60px;
+      color: rgba(26,23,20,0.25);
+      line-height: 1;
+      margin-bottom: 14px;
+    }
+    .empty-state h3 {
+      font-family: var(--serif, serif);
+      font-size: 24px;
+      font-weight: 500;
+      margin: 0 0 8px;
+    }
+    .empty-state p { color: rgba(26,23,20,0.6); margin: 0; font-size: 15px; }
+
+    /* ============= Table ============= */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .data-table th {
+      text-align: left;
+      padding: 14px 16px;
+      font-family: var(--mono, monospace);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(26,23,20,0.55);
+      border-bottom: 2px solid #1a2845;
+    }
+    .data-table td {
+      padding: 18px 16px;
+      border-bottom: 1px solid rgba(26,23,20,0.08);
+      vertical-align: top;
+    }
+    .data-table tbody tr:hover { background: #fafaf7; }
+    .data-table .name {
+      font-family: var(--serif, serif);
+      font-size: 17px;
+      font-weight: 500;
+      color: #1a2845;
+    }
+    .data-table .sub {
+      display: block;
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: rgba(26,23,20,0.55);
+      margin-top: 3px;
+    }
+    .role-tag {
+      display: inline-block;
+      padding: 3px 10px;
+      font-family: var(--mono, monospace);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    .role-tag.member { background: #eee9e2; color: #5b4a30; }
+    .role-tag.bureau { background: #b53932; color: #fff; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      font-family: var(--mono, monospace);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .pill-paid       { background: #e6f1ea; color: #2f6e3f; }
+    .pill-pending    { background: #fff4dd; color: #8b5b00; }
+    .pill-completed  { background: #eee9e2; color: #5b4a30; }
+
+    /* ============= News form ============= */
+    .news-form {
+      background: #f6f2ea;
+      padding: 44px;
+      border: 1px solid rgba(26,23,20,0.08);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px 26px;
+      max-width: 920px;
+    }
+    @media (max-width: 700px) {
+      .news-form { grid-template-columns: 1fr; padding: 30px 26px; }
+    }
+    .news-form .full { grid-column: 1 / -1; }
+    .news-form .field { display: flex; flex-direction: column; gap: 8px; }
+    .news-form label {
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(26,23,20,0.55);
+    }
+    .news-form input, .news-form textarea {
+      font: inherit;
+      font-size: 15px;
+      padding: 12px 15px;
+      border: 1px solid rgba(26,23,20,0.18);
+      background: #fff;
+      border-radius: 0;
+    }
+    .news-form input:focus, .news-form textarea:focus {
+      outline: none;
+      border-color: #1a2845;
+    }
+    .news-form textarea { min-height: 180px; resize: vertical; line-height: 1.6; }
+    .news-form .submit-row {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(26,23,20,0.12);
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+    .news-form .status {
+      grid-column: 1 / -1;
+      font-family: var(--mono, monospace);
+      font-size: 12px;
+      padding: 12px 16px;
+      background: #e6f1ea;
+      color: #2f6e3f;
+      display: none;
+    }
+    .news-form .status.show { display: block; }
+
+    /* ============= Auth gate ============= */
+    .auth-gate {
+      max-width: 600px;
+      margin: 120px auto;
+      padding: 40px;
+      text-align: center;
+    }
+    .auth-gate h2 {
+      font-family: var(--serif, serif);
+      font-size: 32px;
+      font-weight: 500;
+      margin: 0 0 14px;
+    }
+    .auth-gate p { color: rgba(26,23,20,0.7); line-height: 1.6; }
+    .auth-gate a { color: #b53932; font-weight: 700; }
+
+    .bureau-shell { display: none; }
+    .bureau-shell.ready { display: block; }
+
+    /* ============= Inbox (mock e-mail notifications) ============= */
+    .inbox-card {
+      max-width: 1280px;
+      margin: 24px auto 0;
+      padding: 0 28px;
+    }
+    .inbox-inner {
+      background: #fff;
+      border: 1px solid rgba(26,23,20,0.12);
+      box-shadow: 0 4px 24px rgba(26,40,69,0.06);
+    }
+    .inbox-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 22px;
+      border-bottom: 1px solid rgba(26,23,20,0.08);
+      background: #1a2845;
+      color: #fff;
+      flex-wrap: wrap;
+    }
+    .inbox-head .from {
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.65);
+    }
+    .inbox-head h3 {
+      font-family: var(--serif, serif);
+      font-size: 16px;
+      font-weight: 500;
+      margin: 4px 0 0;
+      letter-spacing: -0.005em;
+    }
+    .inbox-head .count {
+      background: #d9b96b;
+      color: #1a2845;
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      padding: 5px 10px;
+    }
+    .inbox-mail {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 14px 20px;
+      padding: 16px 22px;
+      align-items: baseline;
+      border-bottom: 1px solid rgba(26,23,20,0.06);
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .inbox-mail:hover { background: #fafaf7; }
+    .inbox-mail:last-child { border-bottom: none; }
+    .inbox-mail .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #b53932;
+      margin-top: 8px;
+    }
+    .inbox-mail.read .dot { background: rgba(26,23,20,0.18); }
+    .inbox-mail .from-line {
+      font-family: var(--mono, monospace);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(26,23,20,0.55);
+      margin-bottom: 3px;
+    }
+    .inbox-mail .subj {
+      font-family: var(--serif, serif);
+      font-size: 16px;
+      font-weight: 500;
+      color: #1a2845;
+      letter-spacing: -0.005em;
+    }
+    .inbox-mail .when {
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: rgba(26,23,20,0.55);
+      white-space: nowrap;
+    }
+    .inbox-empty {
+      padding: 30px 22px;
+      text-align: center;
+      font-family: var(--serif, serif);
+      font-style: italic;
+      color: rgba(26,23,20,0.5);
+      font-size: 15px;
+    }
+
+    /* History row in articles tab */
+    .article-history {
+      margin-top: 50px;
+    }
+    .history-item {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 22px;
+      padding: 18px 0;
+      align-items: baseline;
+      border-bottom: 1px solid rgba(26,23,20,0.08);
+    }
+    .history-item .title {
+      font-family: var(--serif, serif);
+      font-size: 17px;
+      font-weight: 500;
+      color: #1a2845;
+    }
+    .history-item .meta {
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: rgba(26,23,20,0.55);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Auth gate -->
+  <div class="auth-gate" id="auth-gate">
+    <h2 data-fr="Espace bureau" data-de="Vorstandsbereich"></h2>
+    <p id="auth-msg" data-fr="Vérification de vos droits…" data-de="Berechtigungen werden geprüft…"></p>
+  </div>
+
+  <div class="bureau-shell" id="bureau-shell">
+
+    <!-- Header -->
+    <section class="bureau-head">
+      <div class="bureau-head-inner">
+        <div>
+          <span class="bureau-stamp" data-fr="Réservé au bureau · JCZ" data-de="Nur für den Vorstand · JCZ"></span>
+          <h1 data-fr="Tableau de bord" data-de="Vorstands-Dashboard"></h1>
+        </div>
+        <a class="bureau-back" href="espace-membre.html" data-fr="← Espace membre" data-de="← Mitgliederbereich"></a>
+      </div>
+    </section>
+
+    <!-- Inbox (mock email notifications) -->
+    <div class="inbox-card" id="inbox-card">
+      <div class="inbox-inner">
+        <div class="inbox-head">
+          <div>
+            <span class="from">📬 bureau@jokari.ch · <span data-fr="Boîte de réception" data-de="Posteingang"></span></span>
+            <h3 data-fr="Notifications du club" data-de="Club-Benachrichtigungen"></h3>
+          </div>
+          <span class="count" id="inbox-count">0</span>
+        </div>
+        <div id="inbox-list"></div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <nav class="tabs">
+      <button class="tab active" data-tab="pending">
+        <span data-fr="À modérer" data-de="Zu prüfen"></span>
+        <span class="badge zero" id="badge-pending">0</span>
+      </button>
+      <button class="tab" data-tab="news">
+        <span data-fr="Publier une actualité" data-de="Aktuelles publizieren"></span>
+      </button>
+      <button class="tab" data-tab="members">
+        <span data-fr="Membres" data-de="Mitglieder"></span>
+        <span class="badge zero" id="badge-members">0</span>
+      </button>
+      <button class="tab" data-tab="registrations">
+        <span data-fr="Inscriptions tournois" data-de="Turnier-Anmeldungen"></span>
+        <span class="badge zero" id="badge-regs">0</span>
+      </button>
+      <button class="tab" data-tab="articles">
+        <span data-fr="Historique articles" data-de="Artikel-Historie"></span>
+      </button>
+    </nav>
+
+    <div class="tab-body">
+
+      <!-- PENDING REVIEW -->
+      <section class="tab-pane active" id="pane-pending">
+        <div class="section-title">
+          <h2 data-fr="Articles en attente de relecture" data-de="Artikel in Prüfung"></h2>
+          <p class="hint" data-fr="Lisez l'article complet en bas de la carte. Approuvez pour publier immédiatement, ou refusez avec une note explicative pour l'auteur." data-de="Lesen Sie den vollständigen Artikel auf der Karte. Genehmigen Sie zur sofortigen Veröffentlichung oder lehnen Sie mit einer Begründung ab."></p>
+        </div>
+        <div id="pending-list"></div>
+      </section>
+
+      <!-- NEWS COMPOSE -->
+      <section class="tab-pane" id="pane-news">
+        <div class="section-title">
+          <h2 data-fr="Publier une actualité" data-de="Aktuelles veröffentlichen"></h2>
+          <p class="hint" data-fr="Les actualités apparaissent immédiatement sur la page d'accueil et dans la rubrique Actualités." data-de="Die Meldungen erscheinen sofort auf der Startseite und im Aktuelles-Bereich."></p>
+        </div>
+
+        <form class="news-form" id="news-form">
+          <div class="field full">
+            <label data-fr="Titre de l'actualité" data-de="Titel der Meldung"></label>
+            <input name="title" required maxlength="120" placeholder="Le club accueille trois nouveaux membres" />
+          </div>
+          <div class="field">
+            <label data-fr="Date" data-de="Datum"></label>
+            <input name="date" type="date" required />
+          </div>
+          <div class="field">
+            <label data-fr="Signature" data-de="Signatur"></label>
+            <input name="author" placeholder="Le bureau" value="Le bureau" />
+          </div>
+          <div class="field full">
+            <label data-fr="Chapô" data-de="Vorspann"></label>
+            <input name="excerpt" maxlength="200" placeholder="Une phrase d'accroche, deux au maximum." />
+          </div>
+          <div class="field full">
+            <label data-fr="Corps de l'actualité" data-de="Text der Meldung"></label>
+            <textarea name="body" required minlength="80" placeholder="Le texte complet de l'actualité…"></textarea>
+          </div>
+          <div class="status" id="news-status"></div>
+          <div class="submit-row">
+            <span class="hint" style="font-size:12px;color:rgba(26,23,20,0.6);" data-fr="Publication immédiate — pas de modération sur les actualités du bureau." data-de="Sofortige Veröffentlichung — keine Prüfung für Vorstandsmeldungen."></span>
+            <button type="submit" class="btn btn-primary" data-fr="Publier →" data-de="Veröffentlichen →"></button>
+          </div>
+        </form>
+      </section>
+
+      <!-- MEMBERS -->
+      <section class="tab-pane" id="pane-members">
+        <div class="section-title">
+          <h2 data-fr="Annuaire des membres" data-de="Mitgliederverzeichnis"></h2>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th data-fr="Membre" data-de="Mitglied"></th>
+              <th data-fr="Rôle" data-de="Rolle"></th>
+              <th data-fr="Adhésion" data-de="Beitritt"></th>
+              <th data-fr="Contact" data-de="Kontakt"></th>
+            </tr>
+          </thead>
+          <tbody id="members-list"></tbody>
+        </table>
+      </section>
+
+      <!-- REGISTRATIONS -->
+      <section class="tab-pane" id="pane-registrations">
+        <div class="section-title">
+          <h2 data-fr="Toutes les inscriptions tournois" data-de="Alle Turnier-Anmeldungen"></h2>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th data-fr="Membre" data-de="Mitglied"></th>
+              <th data-fr="Tournoi" data-de="Turnier"></th>
+              <th data-fr="Date" data-de="Datum"></th>
+              <th data-fr="Joueurs" data-de="Spieler"></th>
+              <th data-fr="Montant" data-de="Betrag"></th>
+              <th data-fr="Statut" data-de="Status"></th>
+            </tr>
+          </thead>
+          <tbody id="regs-list"></tbody>
+        </table>
+      </section>
+
+      <!-- ARTICLES HISTORY -->
+      <section class="tab-pane" id="pane-articles">
+        <div class="section-title">
+          <h2 data-fr="Historique articles Lifestyle" data-de="Lifestyle-Artikel Historie"></h2>
+        </div>
+        <div id="history-list"></div>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    (function () {
+      const $ = id => document.getElementById(id);
+      const lang = () => (localStorage.getItem("jokari-lang") || "fr");
+
+      const catLabels = {
+        livres:  { fr: "Livres",         de: "Bücher" },
+        films:   { fr: "Films & Séries", de: "Filme & Serien" },
+        musique: { fr: "Musique",        de: "Musik" },
+        voyages: { fr: "Voyages",        de: "Reisen" },
+        cuisine: { fr: "Cuisine & Vin",  de: "Küche & Wein" },
+        forum:   { fr: "Forum",          de: "Forum" },
+      };
+      const catFor = c => (catLabels[c] || { fr: c, de: c })[lang()];
+
+      function escapeHtml(s) {
+        return String(s || "").replace(/[&<>"']/g, c =>
+          ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c]);
+      }
+
+      // ---- Auth: must be bureau role ----
+      const session = window.JokariAPI.getSession();
+      if (!session) {
+        $("auth-msg").innerHTML = lang() === "de"
+          ? `Bitte zuerst <a href="connexion.html">anmelden</a>.`
+          : `Veuillez d'abord <a href="connexion.html">vous connecter</a>.`;
+        return;
+      }
+      if (session.role !== "bureau") {
+        $("auth-msg").innerHTML = lang() === "de"
+          ? `Dieser Bereich ist dem Vorstand vorbehalten. <a href="espace-membre.html">Zurück</a>`
+          : `Cette zone est réservée au bureau. <a href="espace-membre.html">Retour</a>`;
+        return;
+      }
+
+      // ---- Tabs ----
+      function activateTab(name) {
+        document.querySelectorAll(".tab").forEach(t =>
+          t.classList.toggle("active", t.dataset.tab === name));
+        document.querySelectorAll(".tab-pane").forEach(p =>
+          p.classList.toggle("active", p.id === "pane-" + name));
+      }
+
+      // ---- Pending articles ----
+      async function loadPending() {
+        const res = await window.JokariAPI.fetchPendingArticles();
+        const list = (res.ok && res.articles) || [];
+        const badge = $("badge-pending");
+        badge.textContent = list.length;
+        badge.classList.toggle("zero", list.length === 0);
+
+        const container = $("pending-list");
+        if (!list.length) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <div class="icon">✓</div>
+              <h3>${lang() === "de" ? "Alles geprüft." : "Tout est lu."}</h3>
+              <p>${lang() === "de"
+                ? "Es gibt keine offenen Artikel. Schauen Sie später wieder vorbei."
+                : "Aucun article en attente. Revenez plus tard."}</p>
+            </div>`;
+          return;
+        }
+        container.innerHTML = list.map(a => `
+          <article class="pending-card" data-id="${escapeHtml(a.id)}">
+            <div>
+              ${a.coverImage ? `<img src="${a.coverImage}" alt="" style="width:100%;max-height:280px;object-fit:cover;margin-bottom:18px;display:block;" />` : ""}
+              <span class="cat">${escapeHtml(catFor(a.category))}</span>
+              <h3>${escapeHtml(a.title)}</h3>
+              <div class="author-line">
+                <span>${lang() === "de" ? "Von" : "Par"}</span>
+                <strong>${escapeHtml(a.authorName || "—")}</strong> ·
+                ${lang() === "de" ? "Eingereicht am" : "Soumis le"} ${escapeHtml(a.submittedAt || "—")}
+              </div>
+              ${a.excerpt ? `<p class="excerpt">${escapeHtml(a.excerpt)}</p>` : ""}
+              ${a.body ? `<p class="body-preview">${escapeHtml(a.body)}</p>` : ""}
+            </div>
+            <div class="actions">
+              <button class="btn-approve" data-action="approve">${lang() === "de" ? "Genehmigen ✓" : "Approuver ✓"}</button>
+              <button class="btn-reject" data-action="reject">${lang() === "de" ? "Ablehnen" : "Refuser"}</button>
+            </div>
+          </article>
+        `).join("");
+
+        // Wire actions
+        container.querySelectorAll(".pending-card").forEach(card => {
+          const id = card.dataset.id;
+          card.querySelector('[data-action="approve"]').addEventListener("click", async () => {
+            if (!confirm(lang() === "de" ? "Diesen Artikel veröffentlichen?" : "Publier cet article ?")) return;
+            await window.JokariAPI.decideArticle(id, "approve");
+            loadPending();
+            loadHistory();
+          });
+          card.querySelector('[data-action="reject"]').addEventListener("click", async () => {
+            const note = prompt(lang() === "de"
+              ? "Grund für die Ablehnung (an den Autor übermittelt) :"
+              : "Motif du refus (transmis à l'auteur) :");
+            if (note === null) return;
+            await window.JokariAPI.decideArticle(id, "reject", note);
+            loadPending();
+            loadHistory();
+          });
+        });
+      }
+
+      // ---- Members ----
+      async function loadMembers() {
+        const res = await window.JokariAPI.fetchAllMembers();
+        const list = (res.ok && res.members) || [];
+        $("badge-members").textContent = list.length;
+        $("badge-members").classList.toggle("zero", !list.length);
+        $("members-list").innerHTML = list.map(m => `
+          <tr>
+            <td>
+              <div class="name">${escapeHtml(m.firstName)} ${escapeHtml(m.lastName)}</div>
+              <span class="sub">${escapeHtml(m.id)}</span>
+            </td>
+            <td><span class="role-tag ${m.role}">${m.role === "bureau"
+              ? (lang() === "de" ? "Vorstand" : "Bureau")
+              : (lang() === "de" ? "Mitglied" : "Membre")}</span></td>
+            <td>${new Date(m.joinedAt).toLocaleDateString(lang() === "de" ? "de-CH" : "fr-CH", { year: "numeric", month: "long" })}</td>
+            <td><a href="mailto:${escapeHtml(m.email)}" style="color:#1a2845;text-decoration:none;border-bottom:1px solid currentColor;">${escapeHtml(m.email)}</a></td>
+          </tr>
+        `).join("");
+      }
+
+      // ---- Registrations ----
+      async function loadRegistrations() {
+        const res = await window.JokariAPI.fetchAllRegistrations();
+        const list = (res.ok && res.registrations) || [];
+        $("badge-regs").textContent = list.length;
+        $("badge-regs").classList.toggle("zero", !list.length);
+        const pillFor = s => {
+          const map = {
+            "paid":            { fr: "Payé",            de: "Bezahlt",       cls: "pill-paid" },
+            "pending-payment": { fr: "À régler",        de: "Zahlung offen", cls: "pill-pending" },
+            "completed":       { fr: "Terminé",         de: "Beendet",       cls: "pill-completed" },
+          };
+          const x = map[s] || { fr: s, de: s, cls: "pill-pending" };
+          return `<span class="pill ${x.cls}">${x[lang()]}</span>`;
+        };
+        $("regs-list").innerHTML = list.map(r => `
+          <tr>
+            <td>
+              <div class="name">${escapeHtml(r.memberName || "—")}</div>
+              <span class="sub">${escapeHtml(r.memberEmail || "")}</span>
+            </td>
+            <td>${escapeHtml(r.eventTitle || "—")}</td>
+            <td>${escapeHtml(r.eventDate || "")}</td>
+            <td>${r.participants || 1}</td>
+            <td>CHF ${r.amount || 0}</td>
+            <td>${pillFor(r.status)}</td>
+          </tr>
+        `).join("");
+      }
+
+      // ---- Articles history ----
+      async function loadHistory() {
+        const res = await window.JokariAPI.fetchAllArticles();
+        const list = (res.ok && res.articles) || [];
+        // Exclude drafts and pending (those are elsewhere)
+        const decided = list.filter(a => a.status === "published" || a.status === "rejected");
+        decided.sort((a, b) => (b.publishedAt || b.rejectedAt || "").localeCompare(a.publishedAt || a.rejectedAt || ""));
+        const map = {
+          "published": { fr: "Publié",  de: "Veröffentlicht", cls: "pill-paid" },
+          "rejected":  { fr: "Refusé",  de: "Abgelehnt",      cls: "pill-pending" },
+        };
+        $("history-list").innerHTML = decided.length ? decided.map(a => {
+          const s = map[a.status];
+          return `<div class="history-item">
+            <div>
+              <div class="title">${escapeHtml(a.title)}</div>
+              <span class="meta">${escapeHtml(a.authorName || "—")} · ${escapeHtml(catFor(a.category))}</span>
+            </div>
+            <span class="meta">${escapeHtml(a.publishedAt || a.rejectedAt || "—")}</span>
+            <span class="pill ${s.cls}">${s[lang()]}</span>
+          </div>`;
+        }).join("") : `<div class="empty-state"><div class="icon">—</div><h3>${lang() === "de" ? "Noch keine Entscheidungen." : "Aucune décision encore."}</h3></div>`;
+      }
+
+      // ---- News form ----
+      function wireNewsForm() {
+        const form = $("news-form");
+        const status = $("news-status");
+        // Default date = today
+        form.elements["date"].value = new Date().toISOString().slice(0, 10);
+        form.addEventListener("submit", async e => {
+          e.preventDefault();
+          status.classList.remove("show");
+          const data = {
+            title: form.elements["title"].value.trim(),
+            date: form.elements["date"].value,
+            author: form.elements["author"].value.trim() || "Le bureau",
+            excerpt: form.elements["excerpt"].value.trim(),
+            body: form.elements["body"].value.trim(),
+          };
+          const res = await window.JokariAPI.createNews(data);
+          if (res.ok) {
+            status.classList.add("show");
+            status.textContent = lang() === "de"
+              ? "✓ Meldung veröffentlicht — sie erscheint auf der Startseite."
+              : "✓ Actualité publiée — visible sur l'accueil.";
+            form.reset();
+            form.elements["author"].value = "Le bureau";
+            form.elements["date"].value = new Date().toISOString().slice(0, 10);
+          }
+        });
+      }
+
+      // ---- Inbox (mock e-mail notifs from article submissions) ----
+      async function loadInbox() {
+        const res = await window.JokariAPI.fetchAllArticles();
+        const arts = (res.ok && res.articles) || [];
+        // Build notifications: one per pending-review article (+ one welcome)
+        let read = {};
+        try { read = JSON.parse(localStorage.getItem("jokari-inbox-read") || "{}"); } catch {}
+        const pending = arts.filter(a => a.status === "pending-review")
+          .sort((a, b) => (b.submittedAt || "").localeCompare(a.submittedAt || ""));
+        const mails = pending.map(a => ({
+          id: "art-" + a.id,
+          from: a.authorName || "—",
+          subject: lang() === "de"
+            ? `Neuer Artikel zur Prüfung — « ${a.title} »`
+            : `Nouvel article à relire — « ${a.title} »`,
+          when: a.submittedAt || "",
+          tab: "pending",
+        }));
+        if (!pending.length) {
+          mails.push({
+            id: "welcome",
+            from: "Le bureau",
+            subject: lang() === "de"
+              ? "Willkommen — keine ungelesenen Meldungen"
+              : "Bienvenue — aucune notification non lue",
+            when: new Date().toISOString().slice(0, 10),
+            tab: null,
+          });
+        }
+        $("inbox-count").textContent = mails.filter(m => !read[m.id]).length;
+        const list = $("inbox-list");
+        if (!mails.length) {
+          list.innerHTML = `<div class="inbox-empty">${lang() === "de" ? "Posteingang leer." : "Boîte vide."}</div>`;
+          return;
+        }
+        list.innerHTML = mails.map(m => `
+          <div class="inbox-mail ${read[m.id] ? "read" : ""}" data-id="${m.id}" data-tab="${m.tab || ""}">
+            <span class="dot"></span>
+            <div>
+              <div class="from-line">${escapeHtml(m.from)} · ${lang() === "de" ? "an" : "à"} bureau@jokari.ch</div>
+              <div class="subj">${escapeHtml(m.subject)}</div>
+            </div>
+            <span class="when">${escapeHtml(m.when)}</span>
+          </div>
+        `).join("");
+        list.querySelectorAll(".inbox-mail").forEach(el => {
+          el.addEventListener("click", () => {
+            const id = el.dataset.id;
+            read[id] = true;
+            localStorage.setItem("jokari-inbox-read", JSON.stringify(read));
+            el.classList.add("read");
+            const remaining = list.querySelectorAll(".inbox-mail:not(.read)").length;
+            $("inbox-count").textContent = remaining;
+            if (el.dataset.tab) activateTab(el.dataset.tab);
+          });
+        });
+      }
+
+      // ---- Init ----
+      document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll(".tab").forEach(t => {
+          t.addEventListener("click", () => activateTab(t.dataset.tab));
+        });
+        wireNewsForm();
+        loadInbox();
+        loadPending();
+        loadMembers();
+        loadRegistrations();
+        loadHistory();
+        // Reveal
+        $("auth-gate").style.display = "none";
+        $("bureau-shell").classList.add("ready");
+        if (window.applyLang) window.applyLang(lang());
+      });
+    })();
+  </script>
+</body>
+</html>

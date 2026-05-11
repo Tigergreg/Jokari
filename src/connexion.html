@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Connexion — Jokari Club Zürich</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lato:wght@300;400;700;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .login-shell {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 80px 28px 110px;
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 70px;
+      align-items: stretch;
+    }
+    @media (max-width: 920px) {
+      .login-shell { grid-template-columns: 1fr; gap: 40px; padding-top: 50px; }
+    }
+    .login-aside {
+      background: var(--cream, #f6f2ea);
+      border: 1px solid rgba(26,23,20,0.08);
+      padding: 44px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 480px;
+      position: relative;
+      overflow: hidden;
+    }
+    .login-aside .stamp {
+      position: absolute;
+      top: 28px; right: 32px;
+      font-family: var(--mono, "JetBrains Mono", monospace);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      color: rgba(26,23,20,0.45);
+    }
+    .login-aside .greeting {
+      font-family: var(--serif, "Playfair Display", serif);
+      font-size: 44px;
+      line-height: 1.05;
+      font-weight: 500;
+      margin: 28px 0 16px;
+      letter-spacing: -0.01em;
+    }
+    .login-aside .greeting em { color: var(--red, #b53932); font-style: italic; }
+    .login-aside .sub {
+      font-size: 16px;
+      line-height: 1.6;
+      color: rgba(26,23,20,0.72);
+      max-width: 440px;
+    }
+    .login-aside .quote {
+      margin-top: 50px;
+      padding-top: 28px;
+      border-top: 1px solid rgba(26,23,20,0.12);
+      font-family: var(--serif, serif);
+      font-style: italic;
+      font-size: 18px;
+      line-height: 1.5;
+      color: rgba(26,23,20,0.72);
+    }
+    .login-aside .quote cite {
+      display: block;
+      margin-top: 14px;
+      font-style: normal;
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      color: rgba(26,23,20,0.5);
+    }
+
+    .login-card {
+      background: #fff;
+      border: 1px solid rgba(26,23,20,0.1);
+      padding: 50px 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+    }
+    .login-card .eyebrow {
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      color: var(--red, #b53932);
+      text-transform: uppercase;
+    }
+    .login-card h2 {
+      font-family: var(--serif, serif);
+      font-size: 32px;
+      font-weight: 500;
+      line-height: 1.15;
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+    .login-card p.lede {
+      font-size: 15px;
+      line-height: 1.65;
+      color: rgba(26,23,20,0.72);
+      margin: 0;
+    }
+    .login-card .field { display: flex; flex-direction: column; gap: 8px; }
+    .login-card .field label {
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(26,23,20,0.55);
+    }
+    .login-card .field input {
+      font: inherit;
+      font-size: 16px;
+      padding: 14px 16px;
+      border: 1px solid rgba(26,23,20,0.18);
+      background: #fafafa;
+      border-radius: 0;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .login-card .field input:focus {
+      outline: none;
+      border-color: var(--navy, #1a2845);
+      background: #fff;
+    }
+    .login-card .btn {
+      align-self: flex-start;
+      padding: 14px 28px;
+      font-family: var(--mono, monospace);
+      font-size: 13px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .login-meta {
+      font-size: 13px;
+      line-height: 1.6;
+      color: rgba(26,23,20,0.55);
+      padding-top: 8px;
+      border-top: 1px dashed rgba(26,23,20,0.15);
+    }
+    .login-meta a { color: var(--navy, #1a2845); font-weight: 700; }
+
+    /* Sent state */
+    .login-sent {
+      display: none;
+      flex-direction: column;
+      gap: 22px;
+      padding: 36px;
+      background: #f6f2ea;
+      border: 1px solid rgba(26,23,20,0.1);
+    }
+    .login-sent.show { display: flex; }
+    .login-sent .ok-mark {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      color: var(--green, #2f6e3f);
+      text-transform: uppercase;
+    }
+    .login-sent .ok-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--green, #2f6e3f);
+    }
+    .login-sent h3 {
+      font-family: var(--serif, serif);
+      font-size: 26px;
+      font-weight: 500;
+      line-height: 1.2;
+      margin: 0;
+    }
+    .login-sent p { font-size: 15px; line-height: 1.6; color: rgba(26,23,20,0.75); margin: 0; }
+    .login-sent .resend {
+      font-family: var(--mono, monospace);
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      background: none;
+      border: none;
+      padding: 0;
+      color: var(--navy, #1a2845);
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .dev-banner {
+      margin-top: 12px;
+      padding: 18px 20px;
+      background: #fff8e1;
+      border: 1px dashed #c8a73a;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #5b4400;
+    }
+    .dev-banner strong { display: block; margin-bottom: 6px; font-family: var(--mono, monospace); font-size: 11px; letter-spacing: 0.18em; }
+    .dev-banner a.dev-link {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 10px 16px;
+      background: #1a2845;
+      color: #fff;
+      font-family: var(--mono, monospace);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      text-decoration: none;
+    }
+
+    /* Verifying state */
+    .login-verify {
+      display: none;
+      padding: 40px;
+      text-align: center;
+      background: #f6f2ea;
+    }
+    .login-verify.show { display: block; }
+    .login-verify .pulse {
+      display: inline-block;
+      width: 28px; height: 28px;
+      border: 2px solid rgba(26,23,20,0.2);
+      border-top-color: var(--navy, #1a2845);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 14px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Already logged in state */
+    .login-already {
+      display: none;
+      flex-direction: column;
+      gap: 22px;
+      padding: 36px;
+      background: linear-gradient(135deg, #1a2845, #0f1a30);
+      color: #fff;
+    }
+    .login-already.show { display: flex; }
+    .login-already .eyebrow { color: #d9b96b; }
+    .login-already h3 {
+      font-family: var(--serif, serif);
+      font-size: 30px;
+      font-weight: 500;
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+    .login-already p { color: rgba(255,255,255,0.75); font-size: 15px; line-height: 1.6; margin: 0; }
+    .login-already .actions { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 6px; }
+    .login-already .btn-light {
+      background: #fff;
+      color: #1a2845;
+      padding: 12px 22px;
+      font-family: var(--mono, monospace);
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+    }
+    .login-already .btn-ghost {
+      background: transparent;
+      color: #fff;
+      padding: 12px 22px;
+      font-family: var(--mono, monospace);
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.3);
+      cursor: pointer;
+    }
+
+    .error-msg {
+      color: var(--red, #b53932);
+      font-size: 13px;
+      font-family: var(--mono, monospace);
+      letter-spacing: 0.06em;
+      margin-top: -10px;
+    }
+  </style>
+</head>
+<body>
+
+  <section class="login-shell">
+    <!-- Left aside: brand / poetry -->
+    <aside class="login-aside">
+      <span class="stamp">JCZ · ESPACE MEMBRE</span>
+      <div>
+        <span class="eyebrow" data-fr="Le club vous reconnaît" data-de="Der Club erkennt Sie"></span>
+        <h1 class="greeting">
+          <span data-fr="Bon retour" data-de="Willkommen zurück"></span><em>.</em>
+        </h1>
+        <p class="sub" data-fr="Pas de mot de passe à retenir. Renseignez votre adresse — nous vous envoyons un lien de connexion par e-mail, valide trente minutes." data-de="Kein Passwort nötig. Geben Sie Ihre E-Mail-Adresse ein — Sie erhalten einen Login-Link, der 30 Minuten gültig ist."></p>
+      </div>
+      <div class="quote">
+        <span data-fr="« Le jeu n'est pas dans la raquette, il est dans le poignet de celui qui sait attendre. »" data-de="« Das Spiel liegt nicht im Schläger, sondern im Handgelenk dessen, der zu warten weiss. »"></span>
+        <cite>— H. ROUSSEL · BIARRITZ · 1971</cite>
+      </div>
+    </aside>
+
+    <!-- Right card: form / states -->
+    <div style="display:flex;flex-direction:column;gap:22px;">
+
+      <!-- 1. The form (default state) -->
+      <form id="login-form" class="login-card">
+        <span class="eyebrow" data-fr="Connexion par e-mail" data-de="Login per E-Mail"></span>
+        <h2 data-fr="Recevoir mon lien de connexion" data-de="Login-Link erhalten"></h2>
+        <p class="lede" data-fr="Saisissez l'adresse e-mail que vous avez utilisée lors de votre adhésion au club." data-de="Geben Sie die E-Mail-Adresse ein, mit der Sie dem Club beigetreten sind."></p>
+
+        <div class="field">
+          <label for="login-email" data-fr="Adresse e-mail" data-de="E-Mail-Adresse"></label>
+          <input id="login-email" name="email" type="email" autocomplete="email" required placeholder="prenom@exemple.ch" />
+        </div>
+
+        <div class="error-msg" id="login-error" style="display:none;"></div>
+
+        <button type="submit" class="btn btn-primary" data-fr="Envoyer le lien →" data-de="Link senden →"></button>
+
+        <div class="login-meta">
+          <span data-fr="Pas encore membre ?" data-de="Noch kein Mitglied?"></span>
+          <a href="rejoindre.html" data-fr="Rejoindre le club →" data-de="Beitreten →"></a>
+        </div>
+      </form>
+
+      <!-- 2. Sent state -->
+      <div class="login-sent" id="login-sent">
+        <span class="ok-mark"><span class="ok-dot"></span><span data-fr="Lien envoyé" data-de="Link gesendet"></span></span>
+        <h3 data-fr="Regardez votre boîte de réception." data-de="Schauen Sie in Ihr Postfach."></h3>
+        <p>
+          <span data-fr="Nous venons d'envoyer un lien de connexion à" data-de="Wir haben einen Login-Link gesendet an"></span>
+          <strong id="sent-email">—</strong>.
+          <span data-fr="Il reste valide 30 minutes. Cliquez dessus pour entrer dans votre espace." data-de="Er ist 30 Minuten gültig. Klicken Sie, um Ihren Bereich zu öffnen."></span>
+        </p>
+        <div style="display:flex;gap:18px;align-items:center;">
+          <button type="button" class="resend" id="resend-btn" data-fr="Renvoyer le lien" data-de="Link erneut senden"></button>
+          <button type="button" class="resend" id="change-email-btn" data-fr="Changer d'adresse" data-de="Adresse ändern"></button>
+        </div>
+
+        <!-- Dev mode: shows the magic link directly since email isn't wired up yet -->
+        <div class="dev-banner" id="dev-banner" style="display:none;">
+          <strong data-fr="MODE DÉMO · l'envoi e-mail n'est pas branché" data-de="DEMO-MODUS · E-Mail-Versand ist nicht aktiv"></strong>
+          <span data-fr="Pour tester le flow, cliquez sur ce lien (équivalent du clic dans l'e-mail) :" data-de="Klicken Sie hier, um den Login-Flow zu testen (entspricht dem Klick in der E-Mail):"></span>
+          <a class="dev-link" id="dev-link" href="#" data-fr="→ Ouvrir le lien de connexion" data-de="→ Login-Link öffnen"></a>
+        </div>
+      </div>
+
+      <!-- 3. Verifying state -->
+      <div class="login-verify" id="login-verify">
+        <div class="pulse"></div>
+        <h3 style="font-family:var(--serif, serif);font-size:22px;font-weight:500;margin:0 0 6px;" data-fr="Connexion en cours…" data-de="Anmeldung läuft…"></h3>
+        <p style="font-size:14px;color:rgba(26,23,20,0.65);margin:0;" data-fr="On vérifie votre lien." data-de="Wir prüfen Ihren Link."></p>
+      </div>
+
+      <!-- 4. Already logged in state -->
+      <div class="login-already" id="login-already">
+        <span class="eyebrow" data-fr="Vous êtes connecté(e)" data-de="Sie sind angemeldet"></span>
+        <h3 id="already-greeting">—</h3>
+        <p data-fr="Votre espace membre vous attend : inscriptions, articles Lifestyle, photos." data-de="Ihr Mitgliederbereich wartet: Anmeldungen, Lifestyle-Artikel, Fotos."></p>
+        <div class="actions">
+          <a class="btn-light" href="espace-membre.html" data-fr="Aller à mon espace →" data-de="Zum Mitgliederbereich →"></a>
+          <button class="btn-ghost" id="logout-btn" data-fr="Se déconnecter" data-de="Abmelden"></button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    (function () {
+      const $ = id => document.getElementById(id);
+      const form = $("login-form");
+      const sent = $("login-sent");
+      const verify = $("login-verify");
+      const already = $("login-already");
+      const errEl = $("login-error");
+
+      function showOnly(el) {
+        [form, sent, verify, already].forEach(n => {
+          if (n === el) n.classList.add("show");
+          else n.classList.remove("show");
+          // form has no .show class, use display
+          if (n === form) n.style.display = (n === el) ? "flex" : "none";
+        });
+      }
+
+      function showError(key) {
+        const lang = (localStorage.getItem("jokari-lang") || "fr");
+        const msgs = {
+          fr: {
+            "invalid-email": "Adresse e-mail invalide.",
+            "no-pending": "Aucune demande en cours. Renvoyez un lien.",
+            "invalid-token": "Lien invalide ou déjà utilisé.",
+            "expired": "Ce lien a expiré. Demandez-en un nouveau.",
+            "network": "Problème de connexion. Réessayez.",
+          },
+          de: {
+            "invalid-email": "Ungültige E-Mail-Adresse.",
+            "no-pending": "Keine offene Anfrage. Bitte erneut senden.",
+            "invalid-token": "Ungültiger oder bereits verwendeter Link.",
+            "expired": "Dieser Link ist abgelaufen. Bitte einen neuen anfordern.",
+            "network": "Verbindungsproblem. Bitte erneut versuchen.",
+          }
+        };
+        errEl.textContent = (msgs[lang] || msgs.fr)[key] || key;
+        errEl.style.display = "block";
+      }
+
+      async function handleSubmit(e) {
+        e.preventDefault();
+        errEl.style.display = "none";
+        const email = $("login-email").value.trim();
+        if (!email) return;
+        try {
+          const res = await window.JokariAPI.requestMagicLink(email);
+          if (!res.ok) { showError(res.error || "invalid-email"); return; }
+          $("sent-email").textContent = email;
+          // Show dev banner with direct link in mock mode
+          if (res.devUrl) {
+            $("dev-banner").style.display = "block";
+            $("dev-link").href = res.devUrl;
+          }
+          showOnly(sent);
+        } catch (err) {
+          showError("network");
+        }
+      }
+
+      async function handleVerify(token) {
+        showOnly(verify);
+        try {
+          const res = await window.JokariAPI.verifyMagicLink(token);
+          if (!res.ok) {
+            showError(res.error || "invalid-token");
+            showOnly(form);
+            return;
+          }
+          // Success → reload to refresh nav, then go to espace membre
+          if (typeof window.refreshAuthState === "function") window.refreshAuthState();
+          setTimeout(() => {
+            window.location.href = "espace-membre.html";
+          }, 600);
+        } catch (err) {
+          showError("network");
+          showOnly(form);
+        }
+      }
+
+      function showLoggedIn() {
+        const session = window.JokariAPI.getSession();
+        if (!session) return false;
+        const lang = (localStorage.getItem("jokari-lang") || "fr");
+        const name = session.firstName || (session.email || "").split("@")[0];
+        $("already-greeting").textContent = (lang === "de" ? "Hallo " : "Bonjour ") + name + ".";
+        showOnly(already);
+        return true;
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        // Auto-verify if ?token= in URL
+        const params = new URLSearchParams(location.search);
+        const token = params.get("token");
+        if (token) { handleVerify(token); return; }
+        // Already logged in?
+        if (showLoggedIn()) return;
+        // Default: show form
+        showOnly(form);
+      });
+
+      form.addEventListener("submit", handleSubmit);
+      $("resend-btn").addEventListener("click", () => {
+        const email = $("login-email").value.trim();
+        if (email) form.dispatchEvent(new Event("submit", { cancelable: true }));
+      });
+      $("change-email-btn").addEventListener("click", () => {
+        showOnly(form);
+        $("login-email").focus();
+      });
+      $("logout-btn").addEventListener("click", async () => {
+        await window.JokariAPI.logout();
+        if (typeof window.refreshAuthState === "function") window.refreshAuthState();
+        showOnly(form);
+      });
+    })();
+  </script>
+</body>
+</html>

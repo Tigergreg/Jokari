@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Événement — Jokari Club Zürich</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lato:wght@300;400;700;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <article id="post"></article>
+
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const lang = (localStorage.getItem("jokari-lang") || "fr");
+      const params = new URLSearchParams(location.search);
+      const id = params.get("id");
+      const root = document.getElementById("post");
+
+      if (!id) { root.innerHTML = "<div class='container' style='padding:120px 0;text-align:center;'>Événement introuvable. <a href='evenements.html'>Calendrier</a></div>"; return; }
+
+      const res = await window.JokariAPI.fetchEvent(id);
+      const ev = res.event;
+      if (!ev) { root.innerHTML = `<div class='container' style='padding:120px 0;text-align:center;'>${lang==="fr"?"Événement introuvable.":"Termin nicht gefunden."} <a href='evenements.html'>${lang==="fr"?"Calendrier":"Kalender"}</a></div>`; return; }
+
+      const allRes = await window.JokariAPI.fetchEvents();
+      const others = (allRes.events || []).filter(x => x.id !== ev.id).slice(0, 2);
+
+      const title = lang === "fr" ? ev.title : ev.titleDe;
+      const date = lang === "fr" ? ev.dateFr : ev.dateDe;
+      const time = lang === "fr" ? ev.time : ev.timeDe;
+      const typeTag = lang === "fr" ? ev.type : ev.typeDe;
+      const desc = lang === "fr" ? ev.descFr : ev.descDe;
+      const body = lang === "fr" ? (ev.bodyFr || ev.descFr) : (ev.bodyDe || ev.descDe);
+      const isFree = ev.price === 0;
+      const paragraphs = (body || "").split(/\n\n+/).map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`).join("");
+
+      root.innerHTML = `
+        <section class="post-hero">
+          <div class="container container-narrow">
+            <div class="post-breadcrumb">
+              <a href="index.html">${lang==="fr"?"Accueil":"Start"}</a>
+              &nbsp;/&nbsp;
+              <a href="evenements.html">${lang==="fr"?"Événements":"Termine"}</a>
+            </div>
+            <span class="post-cat">${typeTag}</span>
+            <h1 class="post-title">${title}</h1>
+            <div class="post-byline">
+              <span><strong>${date}</strong> · ${time}</span>
+              <span>${ev.location}</span>
+              <span>${isFree?(lang==="fr"?"Gratuit":"Gratis"):ev.price+" CHF"}</span>
+              <span>${ev.spotsLeft}/${ev.spotsTotal} ${lang==="fr"?"places restantes":"Plätze frei"}</span>
+            </div>
+            <p style="font-size:20px;line-height:1.65;color:rgba(26,23,20,0.85);margin-top:32px;max-width:60ch;font-style:italic;font-family:var(--serif);">${desc}</p>
+          </div>
+          <div class="container">
+            <div class="post-cover">${ph({variant:isFree?"sand":"navy", code:"EVT/"+ev.id.slice(0,4).toUpperCase(), label:ev.location, sun:!isFree})}</div>
+          </div>
+        </section>
+
+        <section style="padding-bottom:60px;">
+          <div class="container">
+            <div class="post-body">
+              ${paragraphs}
+
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:48px 0;">
+                <div style="aspect-ratio:1;">${ph({variant:"sand", code:"GAL/01", label:lang==="fr"?"Édition précédente":"Letzte Ausgabe"})}</div>
+                <div style="aspect-ratio:1;">${ph({variant:"navy", code:"GAL/02", label:lang==="fr"?"Trophée":"Pokal", sun:true})}</div>
+                <div style="aspect-ratio:1;">${ph({variant:"red", code:"GAL/03", label:lang==="fr"?"Vue d'ensemble":"Übersicht"})}</div>
+              </div>
+
+              <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:40px;padding:28px;background:var(--sand);">
+                <div style="flex:1;min-width:200px;">
+                  <div style="font-family:var(--serif);font-size:24px;letter-spacing:-0.005em;">${lang==="fr"?"S'inscrire à ce tournoi":"Für dieses Turnier anmelden"}</div>
+                  <div style="font-size:13px;color:var(--muted);margin-top:6px;">${ev.spotsLeft} ${lang==="fr"?"places encore disponibles":"Plätze noch verfügbar"} · ${date}</div>
+                </div>
+                <a class="btn btn-primary" href="evenements.html#${ev.id}">${lang==="fr"?"Aller au formulaire":"Zum Formular"} →</a>
+              </div>
+            </div>
+
+            <div class="post-foot">
+              <span>${ev.location} · ${date}</span>
+              <a href="evenements.html" style="color:var(--red);">← ${lang==="fr"?"Tous les événements":"Alle Termine"}</a>
+            </div>
+          </div>
+        </section>
+
+        ${others.length ? `
+        <section class="section-cream" style="padding:80px 0;">
+          <div class="container">
+            <span class="eyebrow eyebrow-red">${lang==="fr"?"Aussi au programme":"Auch im Programm"}</span>
+            <h2 style="font-family:var(--serif);font-size:clamp(28px,3.5vw,46px);margin-top:12px;letter-spacing:-0.015em;">${lang==="fr"?"Les autres rendez-vous":"Weitere Termine"}</h2>
+            <div class="event-grid" style="margin-top:32px;">
+              ${others.map(o => {
+                const oFree = o.price === 0;
+                const oTitle = lang === "fr" ? o.title : o.titleDe;
+                const oDate = lang === "fr" ? o.dateFr : o.dateDe;
+                const oTime = lang === "fr" ? o.time : o.timeDe;
+                const oDesc = lang === "fr" ? o.descFr : o.descDe;
+                const oTag = lang === "fr" ? o.type : o.typeDe;
+                return `
+                  <article class="card">
+                    <div class="event-thumb"><a href="evenement.html?id=${o.id}">${ph({variant:oFree?"sand":"navy", code:"EVT", label:o.location, sun:!oFree})}</a></div>
+                    <div class="event-body">
+                      <div class="event-tags"><span class="tag ${oFree?"tag-navy":"tag-red"}">${oTag}</span></div>
+                      <h3 class="event-title"><a href="evenement.html?id=${o.id}">${oTitle}</a></h3>
+                      <div class="event-meta"><span>${oDate} · ${oTime}</span><span>${o.location}</span></div>
+                      <p class="event-desc">${oDesc}</p>
+                      <div class="event-foot">
+                        <span class="event-price">${oFree?(lang==="fr"?"Gratuit":"Gratis"):o.price+" CHF"}</span>
+                        <a class="btn btn-ghost" style="padding:9px 16px;font-size:13px;" href="evenement.html?id=${o.id}">${lang==="fr"?"Voir":"Ansehen"} →</a>
+                      </div>
+                    </div>
+                  </article>`;
+              }).join("")}
+            </div>
+          </div>
+        </section>` : ""}
+      `;
+    });
+  </script>
+</body>
+</html>

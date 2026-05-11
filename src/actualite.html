@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Actualité — Jokari Club Zürich</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lato:wght@300;400;700;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <article id="post"></article>
+
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const lang = (localStorage.getItem("jokari-lang") || "fr");
+      const params = new URLSearchParams(location.search);
+      const id = params.get("id");
+      const root = document.getElementById("post");
+      const CAT_LABELS = {
+        fr: { results: "Résultats", announcement: "Annonce du bureau", press: "Presse" },
+        de: { results: "Ergebnisse", announcement: "Mitteilung des Vorstands", press: "Presse" },
+      };
+
+      if (!id) { root.innerHTML = "<div class='container' style='padding:120px 0;text-align:center;'>Actualité introuvable. <a href='actualites.html'>Toutes les actualités</a></div>"; return; }
+
+      const res = await window.JokariAPI.fetchNewsItem(id);
+      const n = res.item;
+      if (!n) { root.innerHTML = `<div class='container' style='padding:120px 0;text-align:center;'>${lang==="fr"?"Actualité introuvable.":"Nachricht nicht gefunden."} <a href='actualites.html'>${lang==="fr"?"Toutes les actualités":"Alle Beiträge"}</a></div>`; return; }
+
+      const all = (await window.JokariAPI.fetchNews()).news || [];
+      const related = all.filter(x => x.id !== n.id).slice(0, 3);
+
+      const title = lang === "fr" ? n.title : n.titleDe;
+      const body = lang === "fr" ? n.bodyFr : n.bodyDe;
+      const date = lang === "fr" ? n.dateFr : n.dateDe;
+      const catLabel = (CAT_LABELS[lang] || CAT_LABELS.fr)[n.category] || n.category;
+
+      const paragraphs = (body || "").split(/\n\n+/).map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`).join("");
+
+      root.innerHTML = `
+        <section class="post-hero">
+          <div class="container container-narrow">
+            <div class="post-breadcrumb">
+              <a href="index.html">${lang==="fr"?"Accueil":"Start"}</a>
+              &nbsp;/&nbsp;
+              <a href="actualites.html">${lang==="fr"?"Actualités":"Aktuelles"}</a>
+            </div>
+            <span class="post-cat">${catLabel}</span>
+            <h1 class="post-title">${title}</h1>
+            <div class="post-byline">
+              <span>${date}</span>
+              <span>${lang==="fr"?"Le bureau":"Der Vorstand"}</span>
+            </div>
+          </div>
+          <div class="container">
+            <div class="post-cover">${ph({variant:n.cover||"navy", code:"NWS/"+n.id.slice(0,4).toUpperCase(), label:n.coverLabel||title, sun:true})}</div>
+          </div>
+        </section>
+
+        <section style="padding-bottom:60px;">
+          <div class="container">
+            <div class="post-body">${paragraphs}</div>
+            <div class="post-foot">
+              <span>${date} · ${lang==="fr"?"Bureau du club":"Clubvorstand"}</span>
+              <a href="actualites.html" style="color:var(--red);">← ${lang==="fr"?"Toutes les actualités":"Alle Beiträge"}</a>
+            </div>
+          </div>
+        </section>
+
+        ${related.length ? `
+        <section class="section-cream" style="padding:80px 0;">
+          <div class="container">
+            <span class="eyebrow eyebrow-red">${lang==="fr"?"Ailleurs sur le tableau":"Anderswo am Brett"}</span>
+            <h2 style="font-family:var(--serif);font-size:clamp(28px,3.5vw,46px);margin-top:12px;letter-spacing:-0.015em;">${lang==="fr"?"À lire aussi":"Auch interessant"}</h2>
+            <div class="news-grid" style="margin-top:32px;">
+              ${related.map((r, i) => {
+                const rTitle = lang === "fr" ? r.title : r.titleDe;
+                const rExc = lang === "fr" ? r.excerptFr : r.excerptDe;
+                const rDate = lang === "fr" ? r.dateFr : r.dateDe;
+                const rCat = (CAT_LABELS[lang] || CAT_LABELS.fr)[r.category] || r.category;
+                return `
+                  <a href="actualite.html?id=${r.id}" class="news-card ${i===0?"featured":""}">
+                    <div class="news-card-img">${ph({variant:r.cover||"navy", code:"REL", label:r.coverLabel||rTitle})}</div>
+                    <div class="news-card-body">
+                      <div class="news-meta"><span class="news-cat">${rCat}</span><span>${rDate}</span></div>
+                      <h3>${rTitle}</h3>
+                      <p>${rExc}</p>
+                      <span class="news-card-link">${lang==="fr"?"Lire":"Lesen"} →</span>
+                    </div>
+                  </a>`;
+              }).join("")}
+            </div>
+          </div>
+        </section>` : ""}
+      `;
+    });
+  </script>
+</body>
+</html>

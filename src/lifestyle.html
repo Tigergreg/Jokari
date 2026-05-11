@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lifestyle — Jokari Club Zürich</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lato:wght@300;400;700;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .pagination { display:flex; justify-content:center; align-items:center; gap:20px; margin-top:48px; padding:24px 0; border-top:1px solid rgba(26,23,20,0.12); }
+    .pagination button { font-family:var(--mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; background:transparent; border:1px solid rgba(26,23,20,0.2); padding:10px 16px; cursor:pointer; color:var(--ink); transition:all .2s; }
+    .pagination button:hover:not(:disabled) { background:var(--ink); color:var(--cream); }
+    .pagination button:disabled { opacity:0.3; cursor:not-allowed; }
+    .pg-nums { display:flex; gap:6px; }
+    .pg-num { min-width:36px; padding:8px 12px !important; }
+    .pg-num.active { background:var(--ink); color:var(--cream); }
+  </style>
+</head>
+<body>
+
+  <section class="mag-masthead container">
+    <div class="mag-masthead-row">
+      <span class="eyebrow" data-fr="N° 14 · Printemps 2026" data-de="Ausgabe 14 · Frühling 2026"></span>
+      <span class="eyebrow" data-fr="Le magazine du club" data-de="Das Clubmagazin"></span>
+    </div>
+    <h1 class="mag-title" data-fr="Lifestyle.&#10;Une certaine&#10;idée du loisir." data-de="Lifestyle.&#10;Eine bestimmte&#10;Idee von Musse."></h1>
+    <p class="mag-lead" data-fr="Lectures, films, vinyles et virées choisis par les membres. Sans hiérarchie, avec des préférences." data-de="Lektüren, Filme, Schallplatten und Ausflüge der Mitglieder. Ohne Hierarchie, mit Vorlieben."></p>
+  </section>
+
+  <section style="padding:30px 0 0;">
+    <div class="container">
+      <div class="cat-tabs" id="cat-tabs" role="tablist"></div>
+      <div class="cat-select-wrap">
+        <select class="cat-select" id="cat-select" aria-label="Catégorie"></select>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:30px 0 80px;">
+    <div class="container" id="cat-content"></div>
+  </section>
+
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const lang = (localStorage.getItem("jokari-lang") || "fr");
+      const CATS = window.JokariAPI.CATEGORIES;
+      const tabsEl = document.getElementById("cat-tabs");
+      const selectEl = document.getElementById("cat-select");
+      const contentEl = document.getElementById("cat-content");
+
+      const params = new URLSearchParams(location.search);
+      let active = params.get("cat") || "all";
+      const PAGE_SIZE = 9;
+      let page = parseInt(params.get("page") || "1", 10);
+
+      // Build tabs + select
+      tabsEl.innerHTML = CATS.map(c => `<button class="cat-tab" data-cat="${c.id}">${lang==="fr"?c.fr:c.de}</button>`).join("");
+      selectEl.innerHTML = CATS.map(c => `<option value="${c.id}">${lang==="fr"?c.fr:c.de}</option>`).join("");
+
+      // Load all articles
+      const res = await window.JokariAPI.fetchArticles();
+      const all = res.articles || [];
+
+      function fmtArtCard(a, big = false) {
+        const cat = CATS.find(c => c.id === a.category);
+        const catLabel = cat ? (lang==="fr"?cat.fr:cat.de) : a.category;
+        const title = lang === "fr" ? a.title : a.titleDe;
+        const excerpt = lang === "fr" ? a.excerptFr : a.excerptDe;
+        const date = lang === "fr" ? a.dateFr : a.dateDe;
+        const coverVariant = a.cover || "navy";
+        return `
+          <a href="article.html?id=${a.id}" class="art-card">
+            <div class="art-card-img">${ph({ variant: coverVariant, code: "ART/"+a.id.slice(0,4).toUpperCase(), label: a.coverLabel || title, sun: coverVariant==="sand"||coverVariant==="navy" })}</div>
+            <div class="art-cat">${catLabel}</div>
+            <h3>${title}</h3>
+            <p>${excerpt}</p>
+            <div class="art-meta">${a.authorName} · ${date}</div>
+          </a>`;
+      }
+
+      function fmtListItem(a, n) {
+        const title = lang === "fr" ? a.title : a.titleDe;
+        const date = lang === "fr" ? a.dateFr : a.dateDe;
+        return `
+          <li>
+            <span class="cat-n">${String(n).padStart(2,"0")}</span>
+            <a href="article.html?id=${a.id}" style="display:block;">
+              <div class="cat-t">${title}</div>
+              <div class="cat-x">${a.authorName}</div>
+            </a>
+            <span class="cat-d">${date}</span>
+          </li>`;
+      }
+
+      function render() {
+        if (active === "all") {
+          // Featured (most recent across all) + Top per category
+          const sorted = [...all].sort((a,b) => (b.date||"").localeCompare(a.date||""));
+          const featured = sorted[0];
+          const others = sorted.slice(1, 3);
+
+          let html = "";
+          if (featured) {
+            const f = featured;
+            const fTitle = lang === "fr" ? f.title : f.titleDe;
+            const fExcerpt = lang === "fr" ? f.excerptFr : f.excerptDe;
+            const fDate = lang === "fr" ? f.dateFr : f.dateDe;
+            const fCat = CATS.find(c => c.id === f.category);
+            html += `
+              <span class="eyebrow eyebrow-red" data-fr="À la une" data-de="Im Fokus">${lang==="fr"?"À la une":"Im Fokus"}</span>
+              <div class="mag-featured" style="margin-top:18px;">
+                <article>
+                  <a href="article.html?id=${f.id}">
+                    <div class="mag-featured-img">${ph({variant:f.cover||"navy", code:"MAG/01", label:f.coverLabel||fTitle, sun:true})}</div>
+                  </a>
+                  <span class="eyebrow eyebrow-red mt-3" style="display:block;">${fCat?(lang==="fr"?fCat.fr:fCat.de):""}</span>
+                  <h2 style="font-family:var(--serif);font-size:clamp(34px,4vw,52px);margin-top:8px;letter-spacing:-0.015em;line-height:1.08;"><a href="article.html?id=${f.id}">${fTitle}</a></h2>
+                  <p style="font-size:17px;line-height:1.65;color:rgba(26,23,20,0.8);margin-top:12px;">${fExcerpt}</p>
+                  <div style="margin-top:14px;font-family:var(--mono);font-size:11px;letter-spacing:0.08em;color:var(--muted);">${f.authorName} · ${fDate}</div>
+                </article>
+                <div class="mag-side">
+                  ${others.map(o => {
+                    const oTitle = lang === "fr" ? o.title : o.titleDe;
+                    const oExcerpt = lang === "fr" ? o.excerptFr : o.excerptDe;
+                    const oDate = lang === "fr" ? o.dateFr : o.dateDe;
+                    const oCat = CATS.find(c => c.id === o.category);
+                    return `
+                      <article>
+                        <span class="eyebrow eyebrow-red">${oCat?(lang==="fr"?oCat.fr:oCat.de):""}</span>
+                        <h3 style="font-size:26px;margin-top:10px;letter-spacing:-0.005em;line-height:1.15;"><a href="article.html?id=${o.id}">${oTitle}</a></h3>
+                        <p style="margin-top:8px;font-size:14px;line-height:1.6;color:rgba(26,23,20,0.75);">${oExcerpt}</p>
+                        <div style="margin-top:12px;font-family:var(--mono);font-size:10px;letter-spacing:0.08em;color:var(--muted);">${o.authorName} · ${oDate}</div>
+                      </article>`;
+                  }).join("")}
+                </div>
+              </div>`;
+          }
+
+          // Top 5 per category
+          CATS.filter(c => c.id !== "all").forEach(c => {
+            const list = all.filter(a => a.category === c.id)
+                            .sort((a,b) => (b.date||"").localeCompare(a.date||""))
+                            .slice(0, 5);
+            if (!list.length) return;
+            html += `
+              <div class="cat-block">
+                <div class="cat-block-head">
+                  <h2>${lang==="fr"?c.fr:c.de}</h2>
+                  <a class="see-all" href="?cat=${c.id}">${lang==="fr"?"Voir tout":"Alle anzeigen"} →</a>
+                </div>
+                <ol class="cat-list">${list.map((a,i) => fmtListItem(a, i+1)).join("")}</ol>
+              </div>`;
+          });
+
+          contentEl.innerHTML = html;
+        } else {
+          // Filtered: full grid
+          const list = all.filter(a => a.category === active)
+                          .sort((a,b) => (b.date||"").localeCompare(a.date||""));
+          const cat = CATS.find(c => c.id === active);
+          const catLabel = cat ? (lang==="fr"?cat.fr:cat.de) : active;
+          let html = `
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:18px;flex-wrap:wrap;padding-bottom:24px;border-bottom:2px solid var(--ink);">
+              <h2 style="font-family:var(--serif);font-size:clamp(34px,5vw,58px);letter-spacing:-0.02em;">${catLabel}</h2>
+              <span style="font-family:var(--mono);font-size:12px;letter-spacing:0.08em;color:var(--muted);">${list.length} ${lang==="fr"?"articles":"Beiträge"}</span>
+            </div>`;
+          if (!list.length) {
+            html += `<div class="empty-state" style="margin-top:36px;">${lang==="fr"?"Pas encore d'articles dans cette catégorie. Vous voulez en écrire un ?":"Noch keine Beiträge in dieser Kategorie."}</div>`;
+          } else {
+            const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+            if (page > totalPages) page = totalPages;
+            const start = (page - 1) * PAGE_SIZE;
+            const slice = list.slice(start, start + PAGE_SIZE);
+            html += `<div class="art-grid">${slice.map(a => fmtArtCard(a)).join("")}</div>`;
+            if (totalPages > 1) {
+              const dots = Array.from({length: totalPages}, (_, i) =>
+                `<button class="pg-num${i+1===page?' active':''}" data-page="${i+1}">${i+1}</button>`).join("");
+              html += `
+                <nav class="pagination" aria-label="Pagination">
+                  <button class="pg-prev" ${page<=1?"disabled":""} data-page="${page-1}">← ${lang==="fr"?"Précédent":"Zurück"}</button>
+                  <div class="pg-nums">${dots}</div>
+                  <button class="pg-next" ${page>=totalPages?"disabled":""} data-page="${page+1}">${lang==="fr"?"Suivant":"Weiter"} →</button>
+                </nav>`;
+            }
+          }
+          contentEl.innerHTML = html;
+          contentEl.querySelectorAll(".pagination button").forEach(b => {
+            b.addEventListener("click", () => {
+              if (b.disabled) return;
+              page = parseInt(b.dataset.page, 10);
+              render();
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            });
+          });
+        }
+
+        // Update active state
+        tabsEl.querySelectorAll(".cat-tab").forEach(b => b.classList.toggle("active", b.dataset.cat === active));
+        selectEl.value = active;
+
+        // Update URL without reload
+        const u = new URL(location.href);
+        if (active === "all") u.searchParams.delete("cat");
+        else u.searchParams.set("cat", active);
+        if (active === "all" || page === 1) u.searchParams.delete("page");
+        else u.searchParams.set("page", String(page));
+        history.replaceState(null, "", u);
+      }
+
+      tabsEl.addEventListener("click", e => {
+        const b = e.target.closest(".cat-tab");
+        if (b) { active = b.dataset.cat; page = 1; render(); window.scrollTo({top:0,behavior:"smooth"}); }
+      });
+      selectEl.addEventListener("change", () => { active = selectEl.value; page = 1; render(); });
+
+      render();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,118 @@
+Crée un site web complet et production-ready pour Jokari Club Zürich (jokari.ch), une association sportive suisse qui promeut le jeu de raquette rétro Jokari.
+STRUCTURE DE FICHIERS REQUISE — obligatoire :
+/
+├── src/
+│   ├── index.html
+│   ├── jokari.html
+│   ├── evenements.html
+│   ├── lifestyle.html
+│   ├── boutique.html
+│   ├── rejoindre.html
+│   ├── contact.html
+│   ├── css/
+│   │   └── style.css
+│   ├── js/
+│   │   ├── main.js
+│   │   └── api.js
+│   └── images/
+├── api/
+│   ├── server.js          ← API Node.js Express
+│   ├── firestore.js       ← connexion Firestore
+│   └── package.json
+├── .github/
+│   └── workflows/
+│       └── deploy.yml     ← GitHub Actions CI/CD
+├── Dockerfile
+├── nginx.conf
+└── .gitignore
+STACK TECHNIQUE :
+
+Frontend : HTML5, CSS3, JavaScript vanilla
+Backend : Node.js + Express (API légère)
+Base de données : Google Cloud Firestore
+Hébergement : Google Cloud Run (europe-west6)
+CI/CD : GitHub Actions → GCP Artifact Registry → Cloud Run
+Domaine : jokari.ch (GoDaddy)
+Secrets GitHub : GCP_PROJECT_ID=jokari, GCP_REGION=europe-west6, GCP_SA_KEY
+Image Docker : europe-west6-docker.pkg.dev/jokari/jokari-repo/jokari-website
+
+PAGES (7) :
+
+index.html — Hero + présentation + prochains événements + CTA "Rejoindre"
+jokari.html — Histoire, règles, galerie photos
+evenements.html — Calendrier tournois + formulaire inscription payant
+lifestyle.html — Magazine : livres/films/séries recommandés, style forum moderne
+boutique.html — Partenaire Jokari moderne, liens externes produits
+rejoindre.html — Formulaire adhésion membre (actif/bienfaiteur/honoraire), gratuit
+contact.html — Formulaire contact
+
+DESIGN :
+
+Couleurs : bleu marine #1A3A5C, blanc #FFFFFF, sable #F5F0E8, rouge #C0392B
+Style : chic, rétro-moderne, lifestyle français, côte basque années 60
+Navigation bilingue français/allemand (toggle FR/DE)
+Responsive mobile-first
+Font : Google Fonts — Playfair Display (titres) + Lato (corps)
+
+FORMULAIRES — données à capturer :
+Adhésion membre (Firestore → collection members) :
+
+Prénom, Nom, Email, Téléphone
+Adresse, NPA, Ville
+Date de naissance
+Type membre : actif / bienfaiteur / honoraire
+Acceptation statuts (checkbox)
+
+Inscription événement (Firestore → collection registrations) :
+
+Nom complet, Email, Téléphone
+Événement sélectionné
+Nombre de participants
+
+Newsletter (Firestore → collection newsletter) :
+
+Email uniquement
+
+API NODE.JS (api/server.js) :
+
+POST /api/members → sauvegarde dans Firestore members/
+POST /api/registrations → sauvegarde dans Firestore registrations/
+POST /api/newsletter → sauvegarde dans Firestore newsletter/
+GET /api/events → lit les événements depuis Firestore events/
+CORS configuré pour jokari.ch
+Variables d'environnement : GCP_PROJECT_ID, PORT=8080
+
+Dockerfile :
+
+Multi-stage : Node.js (API) + Nginx (frontend)
+Port 8080 (requis par Cloud Run)
+Nginx sert le frontend sur / et proxifie /api/* vers Node.js sur port 3000
+
+nginx.conf :
+
+Sert les fichiers statiques depuis /usr/share/nginx/html
+Proxy /api/ → http://localhost:3000
+Compression gzip activée
+Cache 30 jours pour assets statiques
+Port 8080
+
+.github/workflows/deploy.yml :
+
+Trigger : push sur main
+Jobs : build Docker → push Artifact Registry → deploy Cloud Run
+Service name : jokari-website
+Allow unauthenticated : true
+Memory : 512Mi
+
+.gitignore :
+
+node_modules/, .env, *.json sauf package.json, .DS_Store
+
+TON ET CONTENU :
+
+Chaleureux, convivial, lifestyle, un peu français
+Textes en français (avec toggle DE)
+Jokari Club Zürich, Horgen, Canton de Zurich
+Président : Grégoire Mouly-Aigrot
+Email contact : contact@jokari.ch
+Site : jokari.ch

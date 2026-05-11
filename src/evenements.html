@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Événements — Jokari Club Zürich</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lato:wght@300;400;700;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <section style="padding:80px 0 50px;">
+    <div class="container">
+      <span class="eyebrow eyebrow-red" data-fr="Saison 2026" data-de="Saison 2026"></span>
+      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:50px;align-items:end;margin-top:20px;">
+        <h1 class="hero-title" data-fr="Calendrier&#10;des tournois." data-de="Turnier-&#10;kalender."></h1>
+        <p style="font-size:17px;line-height:1.7;color:rgba(26,23,20,0.8);max-width:380px;" data-fr="Trois rendez-vous majeurs dans l'année, plus quelques sessions libres au fil des saisons." data-de="Drei grosse Termine im Jahr, dazu freie Sessionen je nach Saison."></p>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:30px 0 50px;">
+    <div class="container">
+      <div class="calendar-strip" id="cal-strip"></div>
+    </div>
+  </section>
+
+  <section style="padding:20px 0 80px;">
+    <div class="container">
+      <div class="event-grid event-grid--2" id="events-grid"></div>
+    </div>
+  </section>
+
+  <section class="section-cream" style="padding:70px 0;">
+    <div class="container">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:36px;" class="info-row">
+        <div>
+          <span class="eyebrow eyebrow-red" data-fr="Format" data-de="Format"></span>
+          <h3 style="font-family:var(--serif);font-size:30px;margin-top:14px;" data-fr="Double mixte" data-de="Mixed Doppel"></h3>
+          <p class="mt-2" style="font-size:15px;line-height:1.65;color:rgba(26,23,20,0.8);" data-fr="Tournois en double, tirage au sort le matin. Pas besoin de partenaire." data-de="Doppelturniere mit Auslosung am Morgen. Kein Partner nötig."></p>
+        </div>
+        <div>
+          <span class="eyebrow eyebrow-red" data-fr="Niveau" data-de="Niveau"></span>
+          <h3 style="font-family:var(--serif);font-size:30px;margin-top:14px;" data-fr="Tous bienvenus" data-de="Alle willkommen"></h3>
+          <p class="mt-2" style="font-size:15px;line-height:1.65;color:rgba(26,23,20,0.8);" data-fr="Du débutant au joueur confirmé. Tableaux équilibrés selon vos déclarations." data-de="Vom Anfänger bis Profi. Ausgeglichene Tableaus nach Selbsteinschätzung."></p>
+        </div>
+        <div>
+          <span class="eyebrow eyebrow-red" data-fr="Dîner" data-de="Dinner"></span>
+          <h3 style="font-family:var(--serif);font-size:30px;margin-top:14px;" data-fr="Inclus" data-de="Inklusive"></h3>
+          <p class="mt-2" style="font-size:15px;line-height:1.65;color:rgba(26,23,20,0.8);" data-fr="Le prix comprend le dîner et un t-shirt en coton imprimé pour l'occasion." data-de="Im Preis: Abendessen und ein bedrucktes Baumwoll-T-Shirt."></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Inscription form -->
+  <section style="padding:90px 0 110px;" id="inscription">
+    <div class="container-narrow">
+      <span class="eyebrow eyebrow-red" data-fr="Inscription" data-de="Anmeldung"></span>
+      <h2 class="section-title" style="font-size:clamp(34px,4vw,54px);" data-fr="S'inscrire au tournoi" data-de="Zum Turnier anmelden"></h2>
+      <p class="mt-2" style="color:var(--muted);max-width:540px;" data-fr="Le formulaire enregistre votre inscription auprès du bureau. Le paiement vous sera demandé sur place ou par virement." data-de="Das Formular registriert Ihre Anmeldung beim Büro. Die Zahlung erfolgt vor Ort oder per Überweisung."></p>
+
+      <div id="reg-prefill-banner" style="display:none;background:#1a2845;color:#fff;padding:14px 20px;margin-bottom:8px;font-size:14px;display:none;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;">
+        <span><span data-fr="Connecté en tant que" data-de="Angemeldet als"></span> <strong id="reg-prefill-name"></strong> — <span data-fr="champs pré-remplis." data-de="Felder vorausgefüllt."></span></span>
+        <a href="espace-membre.html" style="color:#d9b96b;font-family:var(--mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;border-bottom:1px solid currentColor;" data-fr="Mon espace →" data-de="Mein Bereich →"></a>
+      </div>
+
+      <form id="reg-form" style="margin-top:36px;display:flex;flex-direction:column;gap:20px;">
+        <div class="field">
+          <label data-fr="Tournoi choisi" data-de="Ausgewähltes Turnier"></label>
+          <select name="eventId" required id="reg-event"></select>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label data-fr="Nom complet" data-de="Vollständiger Name"></label>
+            <input name="fullName" required />
+          </div>
+          <div class="field">
+            <label data-fr="Adresse e-mail" data-de="E-Mail-Adresse"></label>
+            <input name="email" type="email" required />
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label data-fr="Téléphone" data-de="Telefon"></label>
+            <input name="phone" type="tel" />
+          </div>
+          <div class="field">
+            <label data-fr="Nombre de participants" data-de="Anzahl Teilnehmer"></label>
+            <input name="participants" type="number" min="1" max="6" value="1" required />
+          </div>
+        </div>
+
+        <!-- Add a friend section -->
+        <div id="friend-block" style="border-top:1px solid rgba(26,23,20,0.12);padding-top:24px;margin-top:6px;">
+          <label style="display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;color:rgba(26,23,20,0.7);">
+            <input type="checkbox" id="add-friend-toggle" style="width:16px;height:16px;cursor:pointer;" />
+            <span data-fr="J'inscris un·e ami·e avec moi" data-de="Ich melde eine·n Freund·in mit an"></span>
+          </label>
+          <div id="friend-fields" style="display:none;margin-top:18px;padding:18px 20px;background:var(--sand);">
+            <p style="font-size:13px;color:rgba(26,23,20,0.7);margin:0 0 14px;line-height:1.55;" data-fr="Votre ami·e n'a pas besoin d'être membre. Vous restez responsable du paiement total." data-de="Ihr·e Freund·in muss kein Mitglied sein. Sie bleiben für die Gesamtzahlung verantwortlich."></p>
+            <div class="field-row" style="gap:16px;">
+              <div class="field">
+                <label data-fr="Nom de l'ami·e" data-de="Name des·der Freund·in"></label>
+                <input name="friendName" />
+              </div>
+              <div class="field">
+                <label data-fr="E-mail (facultatif)" data-de="E-Mail (optional)"></label>
+                <input name="friendEmail" type="email" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="reg-summary" style="background:var(--sand);padding:18px 22px;display:flex;justify-content:space-between;font-size:14px;">
+          <span data-fr="Montant à régler" data-de="Zu zahlender Betrag"></span>
+          <strong id="reg-total" style="font-family:var(--serif);font-style:italic;font-size:22px;">— CHF</strong>
+        </div>
+        <button type="submit" class="btn btn-primary" style="align-self:flex-start;" data-fr="Envoyer ma demande →" data-de="Anfrage senden →"></button>
+        <div class="form-status" id="reg-status"></div>
+      </form>
+    </div>
+  </section>
+
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const lang = (localStorage.getItem("jokari-lang") || "fr");
+      const res = await window.JokariAPI.fetchEvents();
+      const events = res.events || window.JokariAPI._mockEvents;
+
+      // Calendar strip
+      const strip = document.getElementById("cal-strip");
+      strip.innerHTML = events.map(ev => {
+        const dateStr = lang === "fr" ? ev.dateFr : ev.dateDe;
+        const parts = dateStr.split(" ");
+        const day = parts[0];
+        const month = parts.slice(1).join(" ");
+        const title = lang === "fr" ? ev.title : ev.titleDe;
+        return `<div class="cal-cell">
+          <span class="cal-month">${month}</span>
+          <span class="cal-day">${day}</span>
+          <span class="cal-title">${title}</span>
+          <span class="cal-loc">${ev.location}</span>
+        </div>`;
+      }).join("");
+
+      // Event cards
+      const grid = document.getElementById("events-grid");
+      grid.innerHTML = events.map(ev => {
+        const isFree = ev.price === 0;
+        const title = lang === "fr" ? ev.title : ev.titleDe;
+        const date = lang === "fr" ? ev.dateFr : ev.dateDe;
+        const time = lang === "fr" ? ev.time : ev.timeDe;
+        const desc = lang === "fr" ? ev.descFr : ev.descDe;
+        const typeTag = lang === "fr" ? ev.type : ev.typeDe;
+        const lowSpots = ev.spotsLeft / ev.spotsTotal < 0.4;
+        return `
+          <article class="card" id="${ev.id}">
+            <div class="event-thumb">${ph({ variant: isFree?"sand":"navy", code: "EVT/"+ev.id.slice(0,3).toUpperCase(), label: ev.location, sun: !isFree })}</div>
+            <div class="event-body">
+              <div class="event-tags">
+                <span class="tag ${isFree?"tag-navy":"tag-red"}">${typeTag}</span>
+                ${lowSpots?`<span class="tag tag-filled-red">${ev.spotsLeft} ${lang==="fr"?"places":"Plätze"}</span>`:""}
+              </div>
+              <h3 class="event-title">${title}</h3>
+              <div class="event-meta"><span>${date} · ${time}</span><span>${ev.location}</span></div>
+              <p class="event-desc">${desc}</p>
+              <div class="event-foot">
+                <span class="event-price">${isFree?(lang==="fr"?"Gratuit":"Gratis"):ev.price+" CHF"}</span>
+                <a class="btn ${isFree?"btn-ghost":"btn-navy"}" style="padding:9px 16px;font-size:13px;" href="#inscription" data-pick="${ev.id}">${lang==="fr"?"M'inscrire":"Anmelden"} →</a>
+              </div>
+            </div>
+          </article>`;
+      }).join("");
+
+      // Populate select
+      const sel = document.getElementById("reg-event");
+      sel.innerHTML = events.map(ev => {
+        const t = lang === "fr" ? ev.title : ev.titleDe;
+        return `<option value="${ev.id}" data-price="${ev.price}">${t} · ${lang==="fr"?ev.dateFr:ev.dateDe} · ${ev.price===0?(lang==="fr"?"Gratuit":"Gratis"):ev.price+" CHF"}</option>`;
+      }).join("");
+
+      const partInput = document.querySelector("input[name=participants]");
+      const totalEl = document.getElementById("reg-total");
+      function updateTotal() {
+        const opt = sel.options[sel.selectedIndex];
+        const price = parseFloat(opt.dataset.price);
+        const p = parseInt(partInput.value || "1", 10);
+        totalEl.textContent = price === 0 ? (lang==="fr"?"Gratuit":"Gratis") : (price*p) + " CHF";
+      }
+      sel.addEventListener("change", updateTotal);
+      partInput.addEventListener("input", updateTotal);
+      updateTotal();
+
+      // Pre-select if anchor present
+      document.querySelectorAll("[data-pick]").forEach(b => {
+        b.addEventListener("click", () => { sel.value = b.dataset.pick; updateTotal(); });
+      });
+      if (location.hash) {
+        const id = location.hash.slice(1);
+        if ([...sel.options].some(o => o.value === id)) { sel.value = id; updateTotal(); }
+      }
+
+      // Submit + prefill
+      const form = document.getElementById("reg-form");
+
+      // Prefill from session
+      const session = window.JokariAPI.getSession && window.JokariAPI.getSession();
+      if (session) {
+        const fullName = [session.firstName, session.lastName].filter(Boolean).join(" ").trim();
+        if (fullName) form.querySelector("input[name=fullName]").value = fullName;
+        if (session.email) form.querySelector("input[name=email]").value = session.email;
+        const banner = document.getElementById("reg-prefill-banner");
+        banner.style.display = "flex";
+        document.getElementById("reg-prefill-name").textContent = fullName || session.email;
+      }
+
+      // Add-a-friend toggle
+      const friendToggle = document.getElementById("add-friend-toggle");
+      const friendFields = document.getElementById("friend-fields");
+      friendToggle.addEventListener("change", () => {
+        friendFields.style.display = friendToggle.checked ? "block" : "none";
+        if (friendToggle.checked && parseInt(partInput.value, 10) < 2) {
+          partInput.value = 2;
+          updateTotal();
+        }
+      });
+
+      form.addEventListener("submit", e => {
+        e.preventDefault();
+        submitForm(form, document.getElementById("reg-status"),
+          d => window.JokariAPI.submitRegistration(d), "form.success.registration");
+      });
+    });
+  </script>
+</body>
+</html>

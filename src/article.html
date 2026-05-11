@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Article — Jokari Club Zürich</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lato:wght@300;400;700;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <article id="post"></article>
+
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const lang = (localStorage.getItem("jokari-lang") || "fr");
+      const params = new URLSearchParams(location.search);
+      const id = params.get("id");
+      const root = document.getElementById("post");
+      const CATS = window.JokariAPI.CATEGORIES;
+
+      if (!id) { root.innerHTML = "<div class='container' style='padding:120px 0;text-align:center;'>Article introuvable. <a href='lifestyle.html'>Retour au magazine</a></div>"; return; }
+
+      const res = await window.JokariAPI.fetchArticle(id);
+      const a = res.article;
+      if (!a) { root.innerHTML = `<div class='container' style='padding:120px 0;text-align:center;'>${lang==="fr"?"Article introuvable.":"Beitrag nicht gefunden."} <a href='lifestyle.html'>${lang==="fr"?"Retour au magazine":"Zurück zum Magazin"}</a></div>`; return; }
+
+      const all = (await window.JokariAPI.fetchArticles()).articles || [];
+      const related = all.filter(x => x.category === a.category && x.id !== a.id)
+                         .sort((x,y) => (y.date||"").localeCompare(x.date||""))
+                         .slice(0, 3);
+
+      const title = lang === "fr" ? a.title : a.titleDe;
+      const body = lang === "fr" ? a.bodyFr : a.bodyDe;
+      const date = lang === "fr" ? a.dateFr : a.dateDe;
+      const cat = CATS.find(c => c.id === a.category);
+      const catLabel = cat ? (lang==="fr"?cat.fr:cat.de) : a.category;
+
+      const paragraphs = (body || "").split(/\n\n+/).map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`).join("");
+
+      root.innerHTML = `
+        <section class="post-hero">
+          <div class="container container-narrow">
+            <div class="post-breadcrumb">
+              <a href="lifestyle.html">${lang==="fr"?"Lifestyle":"Lifestyle"}</a>
+              &nbsp;/&nbsp;
+              <a href="lifestyle.html?cat=${a.category}">${catLabel}</a>
+            </div>
+            <span class="post-cat">${catLabel}</span>
+            <h1 class="post-title">${title}</h1>
+            <div class="post-byline">
+              <span>${lang==="fr"?"Par":"Von"} <strong>${a.authorName}</strong></span>
+              <span>${date}</span>
+              <span>${lang==="fr"?"Lecture":"Lesedauer"} ~ ${Math.max(2, Math.round((body||"").length / 1200))} min</span>
+            </div>
+          </div>
+          <div class="container">
+            <div class="post-cover">${ph({variant:a.cover||"navy", code:"ART/"+a.id.slice(0,4).toUpperCase(), label:a.coverLabel||title, sun:true})}</div>
+          </div>
+        </section>
+
+        <section style="padding-bottom:60px;">
+          <div class="container">
+            <div class="post-body">${paragraphs}</div>
+            <div class="post-foot">
+              <span>${a.authorName} · ${date}</span>
+              <a href="lifestyle.html?cat=${a.category}" style="color:var(--red);">← ${lang==="fr"?"Tous les articles":"Alle Beiträge"} ${catLabel}</a>
+            </div>
+          </div>
+        </section>
+
+        ${related.length ? `
+        <section class="section-cream" style="padding:80px 0;">
+          <div class="container">
+            <span class="eyebrow eyebrow-red">${lang==="fr"?"Sur le même rayon":"Aus demselben Regal"}</span>
+            <h2 style="font-family:var(--serif);font-size:clamp(28px,3.5vw,46px);margin-top:12px;letter-spacing:-0.015em;">${lang==="fr"?"À lire ensuite":"Weiterlesen"}</h2>
+            <div class="art-grid" style="margin-top:32px;">
+              ${related.map(r => {
+                const rTitle = lang === "fr" ? r.title : r.titleDe;
+                const rExc = lang === "fr" ? r.excerptFr : r.excerptDe;
+                const rDate = lang === "fr" ? r.dateFr : r.dateDe;
+                return `
+                  <a href="article.html?id=${r.id}" class="art-card">
+                    <div class="art-card-img">${ph({variant:r.cover||"navy", code:"REL", label:r.coverLabel||rTitle})}</div>
+                    <div class="art-cat">${catLabel}</div>
+                    <h3>${rTitle}</h3>
+                    <p>${rExc}</p>
+                    <div class="art-meta">${r.authorName} · ${rDate}</div>
+                  </a>`;
+              }).join("")}
+            </div>
+          </div>
+        </section>` : ""}
+      `;
+    });
+  </script>
+</body>
+</html>

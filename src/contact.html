@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contact — Jokari Club Zürich</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lato:wght@300;400;700;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <section style="padding:80px 0 50px;">
+    <div class="container">
+      <span class="eyebrow eyebrow-red" data-fr="Restons en contact" data-de="Bleiben wir in Kontakt"></span>
+      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:50px;align-items:end;margin-top:20px;">
+        <h1 class="hero-title" data-fr="Écrivez-nous." data-de="Schreiben Sie uns."></h1>
+        <p style="font-size:17px;line-height:1.7;color:rgba(26,23,20,0.8);max-width:420px;" data-fr="Une question, une proposition, une envie de rejoindre une session libre ? Le bureau lit tout, même les longues lettres." data-de="Eine Frage, ein Vorschlag, Lust auf eine offene Spielsession? Das Büro liest alles, auch lange Briefe."></p>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:50px 0 110px;">
+    <div class="container">
+      <div class="contact-grid">
+        <aside style="display:flex;flex-direction:column;gap:30px;">
+          <div style="aspect-ratio:4/5;" id="bureau-img"></div>
+          <div class="info-block">
+            <span class="eyebrow" data-fr="Adresse postale" data-de="Postanschrift"></span>
+            <h3>Jokari Club Zürich</h3>
+            <div class="info-lines">
+              <div>Seestrasse 142</div>
+              <div>8810 Horgen</div>
+              <div data-fr="Suisse" data-de="Schweiz"></div>
+            </div>
+          </div>
+          <div class="info-block">
+            <span class="eyebrow eyebrow-red" data-fr="Courriel" data-de="E-Mail"></span>
+            <h3 style="color:var(--red);">contact@jokari.ch</h3>
+            <div class="info-lines" data-fr="Réponse sous 48h" data-de="Antwort binnen 48h"></div>
+          </div>
+          <div class="info-block">
+            <span class="eyebrow" data-fr="Sessions libres" data-de="Offene Sessions"></span>
+            <h3 data-fr="Jeudi 18h–21h · Dimanche 10h–13h" data-de="Donnerstag 18–21 · Sonntag 10–13"></h3>
+            <div class="info-lines">
+              <div data-fr="Pelouse de Horgen" data-de="Wiese Horgen"></div>
+              <div data-fr="Sans inscription" data-de="Ohne Anmeldung"></div>
+            </div>
+          </div>
+          <div class="info-block">
+            <span class="eyebrow" data-fr="Président" data-de="Präsident"></span>
+            <h3 style="font-size:22px;">Grégoire Mouly-Aigrot</h3>
+          </div>
+        </aside>
+
+        <form id="contact-form" style="display:flex;flex-direction:column;gap:22px;">
+          <div class="field-row">
+            <div class="field"><label data-fr="Votre nom" data-de="Ihr Name"></label><input name="name" required /></div>
+            <div class="field"><label data-fr="Votre adresse e-mail" data-de="Ihre E-Mail"></label><input name="email" type="email" required /></div>
+          </div>
+          <div class="field"><label data-fr="Sujet" data-de="Betreff"></label><input name="subject" required /></div>
+          <div class="field"><label data-fr="Votre message" data-de="Ihre Nachricht"></label><textarea name="message" required style="min-height:180px;"></textarea></div>
+          <button type="submit" class="btn btn-primary" style="align-self:flex-start;" data-fr="Envoyer →" data-de="Senden →"></button>
+          <div class="form-status" id="contact-status"></div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("bureau-img").innerHTML = ph({variant:"navy", code:"BUREAU/01", label:"Le bureau", sun:true});
+      const f = document.getElementById("contact-form");
+      f.addEventListener("submit", e => {
+        e.preventDefault();
+        submitForm(f, document.getElementById("contact-status"),
+          d => window.JokariAPI.submitContact(d), "form.success.contact");
+      });
+    });
+  </script>
+</body>
+</html>

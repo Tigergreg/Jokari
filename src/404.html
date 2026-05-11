@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Page introuvable — Jokari Club Zürich</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lato:wght@300;400;700;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .nf-shell {
+      min-height: calc(100vh - 200px);
+      display: grid;
+      place-items: center;
+      padding: 80px 28px;
+      background: var(--cream);
+    }
+    .nf-inner {
+      max-width: 920px;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 70px;
+      align-items: center;
+    }
+    @media (max-width: 760px) {
+      .nf-inner { grid-template-columns: 1fr; gap: 40px; }
+    }
+    .nf-code {
+      font-family: var(--serif, "Playfair Display", serif);
+      font-style: italic;
+      font-weight: 500;
+      font-size: clamp(180px, 26vw, 320px);
+      line-height: 0.85;
+      letter-spacing: -0.04em;
+      color: #b53932;
+      margin: 0;
+    }
+    .nf-code .zero {
+      display: inline-block;
+      position: relative;
+      color: #1a2845;
+    }
+    .nf-code .zero::after {
+      content: "";
+      position: absolute;
+      inset: 18% 22%;
+      border-radius: 50%;
+      border: 6px solid var(--cream);
+    }
+    .nf-eyebrow {
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #b53932;
+      display: block;
+      margin-bottom: 14px;
+    }
+    .nf-title {
+      font-family: var(--serif, serif);
+      font-size: clamp(34px, 4vw, 48px);
+      font-weight: 500;
+      letter-spacing: -0.015em;
+      line-height: 1.1;
+      margin: 0 0 18px;
+      color: #1a2845;
+    }
+    .nf-lead {
+      font-size: 17px;
+      line-height: 1.65;
+      color: rgba(26,23,20,0.78);
+      margin: 0 0 28px;
+    }
+    .nf-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .nf-quote {
+      font-family: var(--serif, serif);
+      font-style: italic;
+      font-size: 14px;
+      line-height: 1.55;
+      color: rgba(26,23,20,0.55);
+      padding-top: 22px;
+      border-top: 1px solid rgba(26,23,20,0.15);
+      max-width: 380px;
+    }
+  </style>
+</head>
+<body>
+
+  <section class="nf-shell">
+    <div class="nf-inner">
+      <h1 class="nf-code" aria-hidden="true">4<span class="zero">0</span>4</h1>
+      <div>
+        <span class="nf-eyebrow" data-fr="Erreur 404" data-de="Fehler 404"></span>
+        <h2 class="nf-title" data-fr="Cette balle est partie&#10;dans le lac." data-de="Dieser Ball ist&#10;im See gelandet."></h2>
+        <p class="nf-lead" data-fr="La page que vous cherchez n'existe plus, n'a jamais existé, ou a été déplacée. Comme une balle de Jokari mal rattrapée : on l'imagine encore quelque part, mais on ne la retrouve pas." data-de="Die Seite, die Sie suchen, existiert nicht mehr, hat nie existiert oder wurde verschoben. Wie ein verlorener Jokari-Ball: irgendwo da draussen, aber unauffindbar."></p>
+        <div class="nf-actions">
+          <a href="index.html" class="btn btn-primary" data-fr="Retour à l'accueil" data-de="Zur Startseite"></a>
+          <a href="evenements.html" class="btn btn-ghost" data-fr="Voir les tournois" data-de="Turniere ansehen"></a>
+        </div>
+        <p class="nf-quote" data-fr="« On joue ce qu'on a sous la main : la balle, le rebond, la lumière du soir. »&nbsp;— Le règlement du club" data-de="«Wir spielen mit dem, was da ist: Ball, Rückprall, Abendlicht.»&nbsp;— Clubregeln"></p>
+      </div>
+    </div>
+  </section>
+
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

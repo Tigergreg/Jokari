@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Actualités — Jokari Club Zürich</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lato:wght@300;400;700;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <section class="mag-masthead container">
+    <div class="mag-masthead-row">
+      <span class="eyebrow" data-fr="Le tableau du club" data-de="Das Clubbrett"></span>
+      <span class="eyebrow" data-fr="Mises à jour 2025–2026" data-de="Updates 2025–2026"></span>
+    </div>
+    <h1 class="mag-title" data-fr="Actualités." data-de="Aktuelles."></h1>
+    <p class="mag-lead" data-fr="Résultats, décisions du bureau, échos de saison. Rédigé par les membres et publié par le bureau." data-de="Ergebnisse, Vorstandsbeschlüsse, Saison-Echos. Von Mitgliedern verfasst, vom Vorstand veröffentlicht."></p>
+  </section>
+
+  <section style="padding:40px 0 90px;">
+    <div class="container">
+      <div class="news-grid" id="all-news"></div>
+    </div>
+  </section>
+
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const lang = (localStorage.getItem("jokari-lang") || "fr");
+      const CAT_LABELS = {
+        fr: { results: "Résultats", announcement: "Annonce", press: "Presse" },
+        de: { results: "Ergebnisse", announcement: "Mitteilung", press: "Presse" },
+      };
+      const res = await window.JokariAPI.fetchNews();
+      const list = res.news || [];
+      const grid = document.getElementById("all-news");
+      grid.innerHTML = list.map((n, i) => {
+        const title = lang === "fr" ? n.title : n.titleDe;
+        const date = lang === "fr" ? n.dateFr : n.dateDe;
+        const excerpt = lang === "fr" ? n.excerptFr : n.excerptDe;
+        const cat = (CAT_LABELS[lang] || CAT_LABELS.fr)[n.category] || n.category;
+        return `
+          <a href="actualite.html?id=${n.id}" class="news-card ${i===0?"featured":""}">
+            <div class="news-card-img">${ph({ variant: n.cover || "navy", code: "NWS/"+(i+1).toString().padStart(2,"0"), label: n.coverLabel || title, sun: true })}</div>
+            <div class="news-card-body">
+              <div class="news-meta"><span class="news-cat">${cat}</span><span>${date}</span></div>
+              <h3>${title}</h3>
+              <p>${excerpt}</p>
+              <span class="news-card-link">${lang==="fr"?"Lire":"Lesen"} →</span>
+            </div>
+          </a>`;
+      }).join("");
+    });
+  </script>
+</body>
+</html>

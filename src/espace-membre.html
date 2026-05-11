@@ -1,0 +1,843 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Espace membre — Jokari Club Zürich</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lato:wght@300;400;700;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* ============= Header card ============= */
+    .member-header {
+      background: linear-gradient(135deg, #1a2845 0%, #0f1a30 100%);
+      color: #fff;
+      padding: 60px 0 50px;
+      position: relative;
+      overflow: hidden;
+    }
+    .member-header::before {
+      content: "";
+      position: absolute;
+      top: -80px; right: -80px;
+      width: 320px; height: 320px;
+      border: 1px solid rgba(217,185,107,0.18);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .member-header::after {
+      content: "";
+      position: absolute;
+      bottom: -120px; right: 80px;
+      width: 240px; height: 240px;
+      border: 1px solid rgba(217,185,107,0.12);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .member-header-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 28px;
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 50px;
+      align-items: end;
+      position: relative;
+    }
+    @media (max-width: 920px) {
+      .member-header-inner { grid-template-columns: 1fr; gap: 32px; }
+    }
+    .member-stamp {
+      font-family: var(--mono, "JetBrains Mono", monospace);
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      color: #d9b96b;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+      display: block;
+    }
+    .member-greeting {
+      font-family: var(--serif, "Playfair Display", serif);
+      font-size: 58px;
+      line-height: 1.02;
+      font-weight: 500;
+      letter-spacing: -0.015em;
+      margin: 0 0 22px;
+    }
+    .member-greeting em { color: #d9b96b; font-style: italic; }
+    .member-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 22px 36px;
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.65);
+    }
+    .member-meta strong {
+      color: #fff;
+      font-family: var(--mono, monospace);
+      font-weight: 400;
+    }
+    .role-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: #d9b96b;
+      color: #1a2845;
+      font-family: var(--mono, monospace);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      font-weight: 700;
+    }
+    .role-badge.bureau { background: #b53932; color: #fff; }
+    .member-header-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    @media (min-width: 921px) {
+      .member-header-actions { align-items: flex-end; }
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      width: 100%;
+      max-width: 380px;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .stat-cell {
+      padding: 16px 18px;
+      border-right: 1px solid rgba(255,255,255,0.12);
+    }
+    .stat-cell:last-child { border-right: none; }
+    .stat-cell .num {
+      font-family: var(--serif, serif);
+      font-size: 32px;
+      line-height: 1;
+      font-weight: 500;
+      color: #d9b96b;
+    }
+    .stat-cell .lbl {
+      display: block;
+      margin-top: 6px;
+      font-family: var(--mono, monospace);
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      color: rgba(255,255,255,0.55);
+      text-transform: uppercase;
+    }
+    .logout-link {
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      color: rgba(255,255,255,0.6);
+      text-transform: uppercase;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+      text-underline-offset: 4px;
+    }
+    .logout-link:hover { color: #fff; }
+
+    /* ============= Content ============= */
+    .member-body {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 70px 28px 110px;
+    }
+    .panel-row {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 56px;
+      align-items: start;
+    }
+    @media (max-width: 920px) {
+      .panel-row { grid-template-columns: 1fr; gap: 50px; }
+    }
+    .panel { display: flex; flex-direction: column; gap: 22px; }
+    .panel-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding-bottom: 14px;
+      border-bottom: 2px solid #1a2845;
+    }
+    .panel-head h2 {
+      font-family: var(--serif, serif);
+      font-size: 32px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      margin: 0;
+    }
+    .panel-head .count {
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      color: rgba(26,23,20,0.55);
+      text-transform: uppercase;
+    }
+
+    /* Item row */
+    .item {
+      border-bottom: 1px solid rgba(26,23,20,0.1);
+      padding: 22px 0;
+      display: grid;
+      gap: 12px;
+    }
+    .item:last-child { border-bottom: none; }
+    .item-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 14px;
+    }
+    .item-title {
+      font-family: var(--serif, serif);
+      font-size: 21px;
+      font-weight: 500;
+      line-height: 1.25;
+      letter-spacing: -0.005em;
+      margin: 0;
+      color: #1a2845;
+    }
+    .item-title a {
+      color: inherit;
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.15s;
+    }
+    .item-title a:hover { border-bottom-color: #1a2845; }
+    .item-meta {
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      color: rgba(26,23,20,0.55);
+      text-transform: uppercase;
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .item-meta .dot { color: rgba(26,23,20,0.25); }
+    .item-excerpt {
+      font-size: 14px;
+      line-height: 1.55;
+      color: rgba(26,23,20,0.7);
+      margin: 0;
+    }
+
+    /* Status pill */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 11px;
+      font-family: var(--mono, monospace);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .pill-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: currentColor;
+    }
+    .pill-paid       { background: #e6f1ea; color: #2f6e3f; }
+    .pill-pending    { background: #fff4dd; color: #8b5b00; }
+    .pill-completed  { background: #eee9e2; color: #5b4a30; }
+    .pill-published  { background: #e6f1ea; color: #2f6e3f; }
+    .pill-review     { background: #fff4dd; color: #8b5b00; }
+    .pill-draft      { background: #ebebeb; color: #4a4a4a; }
+    .pill-rejected   { background: #fbe6e3; color: #8b1c14; }
+
+    .empty {
+      padding: 40px 0;
+      text-align: center;
+      color: rgba(26,23,20,0.5);
+      font-style: italic;
+      font-family: var(--serif, serif);
+      font-size: 17px;
+    }
+    .empty a { color: #1a2845; font-weight: 700; font-style: normal; }
+
+    /* ============= New article form ============= */
+    .compose-section {
+      margin-top: 90px;
+      padding: 56px;
+      background: #f6f2ea;
+      border: 1px solid rgba(26,23,20,0.08);
+      position: relative;
+    }
+    .compose-section::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0;
+      width: 6px; height: 100%;
+      background: #b53932;
+    }
+    @media (max-width: 700px) {
+      .compose-section { padding: 36px 28px; }
+    }
+    .compose-head {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: end;
+      margin-bottom: 36px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid rgba(26,23,20,0.12);
+    }
+    @media (max-width: 700px) {
+      .compose-head { grid-template-columns: 1fr; gap: 18px; }
+    }
+    .compose-head h2 {
+      font-family: var(--serif, serif);
+      font-size: 38px;
+      font-weight: 500;
+      letter-spacing: -0.015em;
+      line-height: 1.1;
+      margin: 0;
+    }
+    .compose-head p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: rgba(26,23,20,0.72);
+      margin: 0;
+    }
+    .compose-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px 28px;
+    }
+    @media (max-width: 700px) {
+      .compose-grid { grid-template-columns: 1fr; }
+    }
+    .compose-field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .compose-field.full { grid-column: 1 / -1; }
+    .compose-field label {
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(26,23,20,0.55);
+    }
+    .compose-field input,
+    .compose-field select,
+    .compose-field textarea {
+      font: inherit;
+      font-size: 15px;
+      padding: 13px 16px;
+      border: 1px solid rgba(26,23,20,0.18);
+      background: #fff;
+      border-radius: 0;
+      transition: border-color 0.15s;
+    }
+    .compose-field select { appearance: none; cursor: pointer; }
+    .compose-field input:focus,
+    .compose-field select:focus,
+    .compose-field textarea:focus {
+      outline: none;
+      border-color: #1a2845;
+    }
+    .compose-field textarea {
+      min-height: 180px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+    .compose-field .hint {
+      font-size: 12px;
+      color: rgba(26,23,20,0.5);
+      line-height: 1.4;
+    }
+    .photo-drop {
+      border: 2px dashed rgba(26,23,20,0.2);
+      background: #fff;
+      padding: 30px 22px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .photo-drop:hover { border-color: #b53932; background: #fff8f6; }
+    .photo-drop .icon {
+      font-family: var(--serif, serif);
+      font-style: italic;
+      font-size: 32px;
+      color: #b53932;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .photo-drop .label {
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      color: rgba(26,23,20,0.6);
+      text-transform: uppercase;
+    }
+    .photo-drop .filename {
+      display: block;
+      margin-top: 8px;
+      font-family: var(--mono, monospace);
+      font-size: 11px;
+      color: #2f6e3f;
+    }
+    .compose-actions {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      margin-top: 18px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(26,23,20,0.12);
+      flex-wrap: wrap;
+    }
+    .compose-actions .review-note {
+      font-size: 12px;
+      color: rgba(26,23,20,0.6);
+      line-height: 1.5;
+      max-width: 380px;
+    }
+    .compose-actions .btn {
+      align-self: center;
+    }
+    .form-status {
+      grid-column: 1 / -1;
+      font-family: var(--mono, monospace);
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      padding: 12px 16px;
+      background: #e6f1ea;
+      color: #2f6e3f;
+      display: none;
+    }
+    .form-status.show { display: block; }
+    .form-status.error { background: #fbe6e3; color: #8b1c14; }
+
+    /* ============= Auth gate (briefly visible before redirect) ============= */
+    .auth-gate {
+      max-width: 600px;
+      margin: 120px auto;
+      padding: 40px;
+      text-align: center;
+    }
+    .auth-gate h2 {
+      font-family: var(--serif, serif);
+      font-size: 32px;
+      font-weight: 500;
+      margin: 0 0 14px;
+    }
+    .auth-gate p { font-size: 16px; line-height: 1.6; color: rgba(26,23,20,0.7); }
+
+    /* Hide main content until auth check completes */
+    .member-shell { display: none; }
+    .member-shell.ready { display: block; }
+  </style>
+</head>
+<body>
+
+  <!-- Auth gate (shown while checking session / redirecting) -->
+  <div class="auth-gate" id="auth-gate">
+    <h2 data-fr="Espace membre" data-de="Mitgliederbereich"></h2>
+    <p data-fr="Vérification de votre session…" data-de="Sitzung wird geprüft…"></p>
+  </div>
+
+  <div class="member-shell" id="member-shell">
+
+    <!-- ============= Header ============= -->
+    <section class="member-header">
+      <div class="member-header-inner">
+        <div>
+          <span class="member-stamp" data-fr="Espace membre · JCZ" data-de="Mitgliederbereich · JCZ"></span>
+          <h1 class="member-greeting">
+            <span data-fr="Bonjour" data-de="Hallo"></span>
+            <span id="greet-name">—</span><em>.</em>
+          </h1>
+          <div class="member-meta">
+            <span><span data-fr="Statut" data-de="Status"></span> · <span class="role-badge" id="role-badge">—</span></span>
+            <span><span data-fr="Membre depuis" data-de="Mitglied seit"></span> · <strong id="meta-since">—</strong></span>
+            <span><span data-fr="Identifiant" data-de="E-Mail"></span> · <strong id="meta-email">—</strong></span>
+          </div>
+        </div>
+        <div class="member-header-actions">
+          <div class="stats-grid">
+            <div class="stat-cell">
+              <div class="num" id="stat-tournaments">0</div>
+              <span class="lbl" data-fr="Tournois" data-de="Turniere"></span>
+            </div>
+            <div class="stat-cell">
+              <div class="num" id="stat-articles">0</div>
+              <span class="lbl" data-fr="Articles" data-de="Artikel"></span>
+            </div>
+            <div class="stat-cell">
+              <div class="num" id="stat-views">0</div>
+              <span class="lbl" data-fr="Vues" data-de="Aufrufe"></span>
+            </div>
+          </div>
+          <button class="logout-link" id="logout-btn" data-fr="Se déconnecter →" data-de="Abmelden →"></button>
+          <a class="logout-link" id="bureau-link" href="espace-bureau.html" style="display:none;color:#d9b96b;" data-fr="Espace bureau →" data-de="Vorstandsbereich →"></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============= Two-column panels ============= -->
+    <section class="member-body">
+      <div class="panel-row">
+
+        <!-- Inscriptions -->
+        <div class="panel">
+          <div class="panel-head">
+            <h2 data-fr="Mes inscriptions" data-de="Meine Anmeldungen"></h2>
+            <span class="count" id="regs-count"></span>
+          </div>
+          <div id="regs-list">
+            <!-- filled by JS -->
+          </div>
+        </div>
+
+        <!-- Articles -->
+        <div class="panel">
+          <div class="panel-head">
+            <h2 data-fr="Mes articles" data-de="Meine Artikel"></h2>
+            <span class="count" id="articles-count"></span>
+          </div>
+          <div id="articles-list">
+            <!-- filled by JS -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============= Compose ============= -->
+      <section class="compose-section">
+        <div class="compose-head">
+          <div>
+            <span class="member-stamp" style="color:#b53932;margin-bottom:14px;" data-fr="Rubrique Lifestyle" data-de="Lifestyle-Rubrik"></span>
+            <h2 data-fr="Soumettre un article" data-de="Artikel einreichen"></h2>
+          </div>
+          <p data-fr="Vos articles sont relus par le bureau avant publication. Comptez 48 heures pour un retour — refus argumenté ou mise en ligne avec votre photo et votre nom." data-de="Ihre Artikel werden vor der Veröffentlichung vom Büro geprüft. Rückmeldung innerhalb von 48 Stunden — begründete Ablehnung oder Veröffentlichung mit Ihrem Foto und Namen."></p>
+        </div>
+
+        <form id="compose-form" class="compose-grid">
+          <div class="compose-field">
+            <label for="art-title" data-fr="Titre" data-de="Titel"></label>
+            <input id="art-title" name="title" required maxlength="120" placeholder="Trois cafés où relire Modiano" />
+          </div>
+
+          <div class="compose-field">
+            <label for="art-category" data-fr="Catégorie" data-de="Kategorie"></label>
+            <select id="art-category" name="category" required>
+              <option value="livres" data-fr="Livres" data-de="Bücher">Livres</option>
+              <option value="films" data-fr="Films & Séries" data-de="Filme & Serien">Films & Séries</option>
+              <option value="musique" data-fr="Musique" data-de="Musik">Musique</option>
+              <option value="voyages" data-fr="Voyages" data-de="Reisen">Voyages</option>
+              <option value="cuisine" data-fr="Cuisine & Vin" data-de="Küche & Wein">Cuisine & Vin</option>
+              <option value="forum" data-fr="Forum" data-de="Forum">Forum</option>
+            </select>
+          </div>
+
+          <div class="compose-field full">
+            <label for="art-excerpt" data-fr="Chapô · 1 à 2 phrases" data-de="Vorspann · 1 bis 2 Sätze"></label>
+            <input id="art-excerpt" name="excerpt" maxlength="180" placeholder="L'amorce qui donnera envie de lire l'article entier." />
+            <span class="hint" data-fr="Apparaîtra sur la grille Lifestyle, en deux lignes." data-de="Erscheint im Lifestyle-Raster auf zwei Zeilen."></span>
+          </div>
+
+          <div class="compose-field full">
+            <label for="art-body" data-fr="Corps de l'article" data-de="Artikeltext"></label>
+            <textarea id="art-body" name="body" required minlength="200" placeholder="Soyez généreux, soyez précis. Un bon article tient en 800 à 1500 mots."></textarea>
+            <span class="hint" data-fr="Vous pouvez utiliser la mise en forme **gras**, *italique* et passer à la ligne pour créer un paragraphe." data-de="Sie können **fett**, *kursiv* und Zeilenumbrüche für neue Absätze verwenden."></span>
+          </div>
+
+          <div class="compose-field full">
+            <label data-fr="Photo de couverture" data-de="Titelbild"></label>
+            <label for="art-photo" class="photo-drop" id="photo-drop">
+              <span class="icon">+</span>
+              <span class="label" data-fr="Cliquer ou glisser une image (JPG / PNG, max 5 Mo)" data-de="Klicken oder Bild ziehen (JPG / PNG, max 5 MB)"></span>
+              <span class="filename" id="photo-filename" style="display:none;"></span>
+              <input id="art-photo" name="photo" type="file" accept="image/jpeg,image/png" style="display:none;" />
+            </label>
+          </div>
+
+          <div class="form-status" id="form-status"></div>
+
+          <div class="compose-actions">
+            <div class="review-note" data-fr="En soumettant cet article, vous autorisez le bureau à le relire, le corriger et le publier sous votre nom. Vous restez propriétaire du texte et pouvez demander son retrait à tout moment." data-de="Mit dem Einreichen erlauben Sie dem Büro, den Text zu prüfen, zu redigieren und unter Ihrem Namen zu veröffentlichen. Sie bleiben Eigentümer:in und können jederzeit die Entfernung verlangen."></div>
+            <button type="submit" class="btn btn-primary" data-fr="Soumettre pour relecture →" data-de="Zur Prüfung einreichen →"></button>
+          </div>
+        </form>
+      </section>
+
+    </section>
+
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    (function () {
+      const $ = id => document.getElementById(id);
+      const lang = () => (localStorage.getItem("jokari-lang") || "fr");
+
+      // ---- Auth guard ----
+      const session = window.JokariAPI.getSession();
+      if (!session) {
+        // No session → redirect to login
+        setTimeout(() => { location.href = "connexion.html"; }, 400);
+        return;
+      }
+
+      // ---- Categories label map ----
+      const catLabels = {
+        livres:  { fr: "Livres",         de: "Bücher" },
+        films:   { fr: "Films & Séries", de: "Filme & Serien" },
+        musique: { fr: "Musique",        de: "Musik" },
+        voyages: { fr: "Voyages",        de: "Reisen" },
+        cuisine: { fr: "Cuisine & Vin",  de: "Küche & Wein" },
+        forum:   { fr: "Forum",          de: "Forum" },
+      };
+      const catFor = c => (catLabels[c] || { fr: c, de: c });
+
+      const statusLabels = {
+        // Registrations
+        "paid":            { fr: "Payé",                 de: "Bezahlt",         cls: "pill-paid" },
+        "pending-payment": { fr: "À régler",             de: "Zahlung offen",   cls: "pill-pending" },
+        "completed":       { fr: "Tournoi terminé",      de: "Turnier beendet", cls: "pill-completed" },
+        // Articles
+        "published":      { fr: "Publié",                de: "Veröffentlicht",  cls: "pill-published" },
+        "pending-review": { fr: "En relecture",          de: "In Prüfung",      cls: "pill-review" },
+        "draft":          { fr: "Brouillon",             de: "Entwurf",         cls: "pill-draft" },
+        "rejected":       { fr: "Refusé",                de: "Abgelehnt",       cls: "pill-rejected" },
+      };
+
+      function pillFor(status) {
+        const s = statusLabels[status] || { fr: status, de: status, cls: "pill-draft" };
+        return `<span class="pill ${s.cls}"><span class="pill-dot"></span>${s[lang()]}</span>`;
+      }
+
+      function fmtCount(n) {
+        const l = lang();
+        if (l === "de") return n === 1 ? "1 Eintrag" : `${n} Einträge`;
+        return n === 1 ? "1 entrée" : `${n} entrées`;
+      }
+
+      // ---- Render header ----
+      function renderHeader() {
+        $("greet-name").textContent = session.firstName || (session.email || "").split("@")[0];
+        $("meta-email").textContent = session.email || "—";
+        $("meta-since").textContent = session.since
+          ? new Date(session.since).toLocaleDateString(lang() === "de" ? "de-CH" : "fr-CH",
+              { year: "numeric", month: "long" })
+          : "—";
+        const role = session.role || "member";
+        const badge = $("role-badge");
+        badge.textContent = role === "bureau"
+          ? (lang() === "de" ? "Vorstand" : "Bureau")
+          : (lang() === "de" ? "Mitglied" : "Membre");
+        badge.classList.toggle("bureau", role === "bureau");
+      }
+
+      // ---- Render registrations ----
+      function renderRegistrations(regs) {
+        $("regs-count").textContent = fmtCount(regs.length);
+        const list = $("regs-list");
+        if (!regs.length) {
+          list.innerHTML = `<div class="empty">
+            ${lang() === "de"
+              ? `Noch keine Anmeldung. <a href="evenements.html">Termine ansehen →</a>`
+              : `Aucune inscription pour le moment. <a href="evenements.html">Voir les événements →</a>`}
+          </div>`;
+          return;
+        }
+        list.innerHTML = regs.map(r => `
+          <article class="item">
+            <div class="item-top">
+              <h3 class="item-title"><a href="evenement.html?id=${r.eventId}">${escapeHtml(r.eventTitle)}</a></h3>
+              ${pillFor(r.status)}
+            </div>
+            <div class="item-meta">
+              <span>${escapeHtml(r.eventDate || "")}</span>
+              <span class="dot">·</span>
+              <span>${r.participants} ${r.participants > 1
+                ? (lang() === "de" ? "Teilnehmende" : "participants")
+                : (lang() === "de" ? "Teilnehmer:in" : "participant")}</span>
+              <span class="dot">·</span>
+              <span>CHF ${r.amount}</span>
+              ${r.result ? `<span class="dot">·</span><span>${escapeHtml(r.result)}</span>` : ""}
+            </div>
+          </article>
+        `).join("");
+      }
+
+      // ---- Render articles ----
+      function renderArticles(articles) {
+        $("articles-count").textContent = fmtCount(articles.length);
+        $("stat-articles").textContent = articles.filter(a => a.status === "published").length;
+        $("stat-views").textContent = articles.reduce((s, a) => s + (a.views || 0), 0).toLocaleString(lang() === "de" ? "de-CH" : "fr-CH");
+        const list = $("articles-list");
+        if (!articles.length) {
+          list.innerHTML = `<div class="empty">
+            ${lang() === "de"
+              ? "Noch kein Artikel. Verfassen Sie unten Ihren ersten."
+              : "Aucun article pour le moment. Rédigez le premier ci-dessous."}
+          </div>`;
+          return;
+        }
+        list.innerHTML = articles.map(a => {
+          const cat = catFor(a.category)[lang()];
+          const isLink = a.status === "published";
+          const title = isLink
+            ? `<a href="article.html?id=${a.id}">${escapeHtml(a.title)}</a>`
+            : escapeHtml(a.title);
+          const dateLine = a.publishedAt || a.submittedAt || "";
+          const dateLabel = a.status === "published"
+            ? (lang() === "de" ? "Veröffentlicht" : "Publié")
+            : (lang() === "de" ? "Eingereicht" : "Soumis");
+          return `
+            <article class="item">
+              <div class="item-top">
+                <h3 class="item-title">${title}</h3>
+                ${pillFor(a.status)}
+              </div>
+              <div class="item-meta">
+                <span>${escapeHtml(cat)}</span>
+                <span class="dot">·</span>
+                <span>${dateLabel} ${escapeHtml(dateLine)}</span>
+                ${a.views !== undefined && a.views > 0
+                  ? `<span class="dot">·</span><span>${a.views.toLocaleString(lang() === "de" ? "de-CH" : "fr-CH")} ${lang() === "de" ? "Aufrufe" : "vues"}</span>`
+                  : ""}
+              </div>
+              ${a.excerpt ? `<p class="item-excerpt">${escapeHtml(a.excerpt)}</p>` : ""}
+            </article>
+          `;
+        }).join("");
+      }
+
+      function escapeHtml(s) {
+        return String(s || "").replace(/[&<>"']/g, c =>
+          ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c]);
+      }
+
+      // ---- Load data ----
+      async function loadAll() {
+        try {
+          const [regsRes, articlesRes] = await Promise.all([
+            window.JokariAPI.fetchMyRegistrations(),
+            window.JokariAPI.fetchMyArticles(),
+          ]);
+          const regs = (regsRes.ok && regsRes.registrations) || [];
+          const articles = (articlesRes.ok && articlesRes.articles) || [];
+          $("stat-tournaments").textContent = regs.length;
+          renderHeader();
+          renderRegistrations(regs);
+          renderArticles(articles);
+
+          if (session.role === "bureau") {
+            const bl = $("bureau-link");
+            if (bl) bl.style.display = "inline-block";
+          }
+
+          // Reveal
+          $("auth-gate").style.display = "none";
+          $("member-shell").classList.add("ready");
+          // Re-apply i18n now that DOM is built
+          if (window.applyLang) window.applyLang(lang());
+        } catch (err) {
+          console.error("[espace-membre] load failed", err);
+        }
+      }
+
+      // ---- Compose form ----
+      function wireCompose() {
+        const form = $("compose-form");
+        const fileInput = $("art-photo");
+        const filename = $("photo-filename");
+        const drop = $("photo-drop");
+        const status = $("form-status");
+
+        let coverDataUrl = null;
+        fileInput.addEventListener("change", () => {
+          if (fileInput.files && fileInput.files[0]) {
+            const file = fileInput.files[0];
+            filename.textContent = "✓ " + file.name;
+            filename.style.display = "block";
+            const reader = new FileReader();
+            reader.onload = e => { coverDataUrl = e.target.result; };
+            reader.readAsDataURL(file);
+          }
+        });
+        form._getCoverUrl = () => coverDataUrl;
+
+        // Drag & drop visual only (real upload comes in B.4)
+        ["dragover", "dragenter"].forEach(ev => {
+          drop.addEventListener(ev, e => { e.preventDefault(); drop.style.borderColor = "#b53932"; drop.style.background = "#fff8f6"; });
+        });
+        ["dragleave", "drop"].forEach(ev => {
+          drop.addEventListener(ev, e => { e.preventDefault(); drop.style.borderColor = ""; drop.style.background = ""; });
+        });
+        drop.addEventListener("drop", e => {
+          if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            fileInput.files = e.dataTransfer.files;
+            fileInput.dispatchEvent(new Event("change"));
+          }
+        });
+
+        form.addEventListener("submit", async e => {
+          e.preventDefault();
+          status.classList.remove("show", "error");
+          const data = {
+            title: $("art-title").value.trim(),
+            category: $("art-category").value,
+            excerpt: $("art-excerpt").value.trim(),
+            body: $("art-body").value.trim(),
+            authorName: (session.firstName || "") + " " + (session.lastName || ""),
+            coverImage: form._getCoverUrl ? form._getCoverUrl() : null,
+            coverFilename: (fileInput.files && fileInput.files[0]) ? fileInput.files[0].name : null,
+          };
+          try {
+            const res = await window.JokariAPI.submitArticle(data);
+            if (!res.ok) throw new Error(res.error || "submit-failed");
+            status.classList.add("show");
+            status.textContent = lang() === "de"
+              ? "✓ Artikel eingereicht — das Büro meldet sich binnen 48 Stunden."
+              : "✓ Article soumis — le bureau vous répond sous 48 heures.";
+            form.reset();
+            filename.style.display = "none";
+            // Reload articles list
+            const articlesRes = await window.JokariAPI.fetchMyArticles();
+            renderArticles((articlesRes.ok && articlesRes.articles) || []);
+          } catch (err) {
+            status.classList.add("show", "error");
+            status.textContent = lang() === "de"
+              ? "✗ Einreichung fehlgeschlagen. Bitte erneut versuchen."
+              : "✗ La soumission a échoué. Veuillez réessayer.";
+          }
+        });
+      }
+
+      // ---- Logout ----
+      function wireLogout() {
+        $("logout-btn").addEventListener("click", async () => {
+          await window.JokariAPI.logout();
+          if (typeof window.refreshAuthState === "function") window.refreshAuthState();
+          location.href = "connexion.html";
+        });
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        wireCompose();
+        wireLogout();
+        loadAll();
+      });
+    })();
+  </script>
+</body>
+</html>
