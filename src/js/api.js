@@ -4,12 +4,7 @@
    ============================================================ */
 
 const API_BASE = (window.JOKARI_API_BASE || "/api");
-const USE_MOCK = (
-  typeof window !== "undefined" &&
-  (window.JOKARI_USE_MOCK ||
-   location.protocol === "file:" ||
-   !/(^|\.)jokari\.ch$/i.test(location.hostname))
-);
+const USE_MOCK = false;
 
 async function call(path, options = {}) {
   if (USE_MOCK) return mockCall(path, options);
