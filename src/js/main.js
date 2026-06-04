@@ -13,7 +13,7 @@ const I18N = {
     "cta.calendar": "Voir le calendrier", "cta.register": "M'inscrire",
     "footer.tagline": "L'élégance du rebond, depuis Horgen.",
     "footer.explore": "Explorer", "footer.club": "Le Club", "footer.legal": "Légal",
-    "footer.stayClose": "Restons proches", "footer.address": "Seestrasse, 8810 Horgen, ZH",
+    "footer.stayClose": "Restons proches", "footer.address": "8810 Horgen, ZH",
     "footer.newsletter": "Quatre lettres par an, écrites par le bureau. Pas de publicité.",
     "footer.statuts": "Statuts", "footer.privacy": "Confidentialité", "footer.mentions": "Mentions légales",
     "form.email": "Votre adresse e-mail", "form.subscribe": "S'abonner",
@@ -33,7 +33,7 @@ const I18N = {
     "cta.calendar": "Kalender ansehen", "cta.register": "Anmelden",
     "footer.tagline": "Die Eleganz des Rückpralls, aus Horgen.",
     "footer.explore": "Entdecken", "footer.club": "Der Club", "footer.legal": "Rechtliches",
-    "footer.stayClose": "Bleiben Sie nah", "footer.address": "Seestrasse, 8810 Horgen, ZH",
+    "footer.stayClose": "Bleiben Sie nah", "footer.address": "8810 Horgen, ZH",
     "footer.newsletter": "Vier Briefe pro Jahr, vom Büro geschrieben. Keine Werbung.",
     "footer.statuts": "Statuten", "footer.privacy": "Datenschutz", "footer.mentions": "Impressum",
     "form.email": "Ihre E-Mail-Adresse", "form.subscribe": "Abonnieren",
@@ -247,6 +247,20 @@ function ph({ variant, code, label, sun }) {
   </div>`;
 }
 window.ph = ph;
+
+// -------- Image helper (vraie image OU placeholder fallback) --------
+// Usage:
+//   img({ src: "images/events/open-zh.jpg", alt: "Open de Zürich", fallback: { variant:"navy", code:"EVT", label:"Open ZH", sun:true } })
+// Le fallback est utilisé si src est vide OU si l'image renvoie 404.
+function img({ src, alt, fallback }) {
+  if (!src) return ph(fallback || {});
+  // On utilise onerror pour basculer sur le placeholder en cas de 404
+  const fallbackHTML = ph(fallback || {}).replace(/"/g, "&quot;");
+  return `<img src="${src}" alt="${(alt || "").replace(/"/g, "&quot;")}"
+    style="width:100%;height:100%;object-fit:cover;display:block;"
+    onerror="this.outerHTML='${fallbackHTML.replace(/'/g, "\\'")}';" />`;
+}
+window.img = img;
 
 // -------- Form submit helper --------
 async function submitForm(formEl, statusEl, sendFn, successKey) {

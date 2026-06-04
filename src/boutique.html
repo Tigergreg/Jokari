@@ -102,7 +102,11 @@
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const lang = (localStorage.getItem("jokari-lang") || "fr");
-      document.getElementById("prod-tee").innerHTML = ph({ variant:"navy", code:"BTQ/01", label: lang==="fr"?"T-shirt marine":"T-Shirt marineblau", sun:true });
+      document.getElementById("prod-tee").innerHTML = img({
+        src: "images/boutique/Jokari.PNG",
+        alt: lang==="fr"?"T-shirt marine":"T-Shirt marineblau",
+        fallback: { variant:"navy", code:"BTQ/01", label: lang==="fr"?"T-shirt marine":"T-Shirt marineblau", sun:true }
+      });
       document.getElementById("prod-tote").innerHTML = ph({ variant:"sand", code:"BTQ/02", label: lang==="fr"?"Tote lin écru":"Tote Naturleinen" });
     });
   </script>

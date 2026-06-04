@@ -35,9 +35,9 @@
       <div class="about-grid">
         <div>
           <span class="eyebrow eyebrow-red" data-fr="Notre manifeste" data-de="Unser Manifest"></span>
-          <h2 class="section-title mt-2" data-fr="Une association,&#10;trois balles,&#10;beaucoup d'élégance." data-de="Ein Verein,&#10;drei Bälle,&#10;viel Eleganz."></h2>
+          <h2 class="section-title mt-2" data-fr="Une association,&#10;1 balle,&#10;beaucoup d'élégance." data-de="Ein Verein,&#10;1 Ball,&#10;viel Eleganz."></h2>
           <p class="mt-3" style="font-size:17px;line-height:1.7;color:rgba(26,23,20,0.8);max-width:520px;" data-fr="Nous sommes une bande d'amoureux du Jokari — ce petit jeu inventé sur les plages basques en 1949 et qui consiste, en somme, à frapper une balle élastique tendue à un socle. Rien de plus simple. Rien de plus addictif." data-de="Wir sind eine Gruppe von Jokari-Verliebten — jenes Spiel, das 1949 an den baskischen Stränden erfunden wurde. Einfacher geht es nicht. Süchtiger auch nicht."></p>
-          <p class="mt-2" style="font-size:17px;line-height:1.7;color:rgba(26,23,20,0.8);max-width:520px;" data-fr="Réunis chaque semaine sur les pelouses de Horgen, nous partageons des matchs amicaux, un verre de blanc bien frais et l'idée que le sport peut rester chic, lent et profondément joyeux." data-de="Jede Woche auf den Wiesen von Horgen teilen wir freundschaftliche Partien, einen kühlen Weisswein und die Idee, dass Sport stilvoll, langsam und freudig bleiben kann."></p>
+          <p class="mt-2" style="font-size:17px;line-height:1.7;color:rgba(26,23,20,0.8);max-width:520px;" data-fr="Réunis chaque semaine (ou pas) sur les pelouses de Horgen ou la plage de la Baule, nous partageons des matchs amicaux, un verre de blanc bien frais et l'idée que le sport peut rester chic, lent et profondément joyeux mais aussi rigoureusement physique." data-de="Jede Woche (oder auch nicht) auf den Wiesen von Horgen oder am Strand von La Baule teilen wir freundschaftliche Partien, einen kühlen Weisswein und die Idee, dass Sport stilvoll, langsam und freudig bleiben kann — und dennoch konsequent körperlich."></p>
           <a class="btn btn-ghost mt-4" href="jokari.html" data-fr="En savoir plus →" data-de="Mehr erfahren →"></a>
         </div>
         <div class="about-images">
@@ -113,10 +113,26 @@
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const lang = (localStorage.getItem("jokari-lang") || "fr");
-      document.getElementById("hero-img").innerHTML = ph({ variant: "navy", code: "HERO/01", label: lang==="fr"?"Match au crépuscule · Horgen":"Spiel in der Dämmerung", sun: true });
-      document.getElementById("about-1").innerHTML = ph({ variant: "sand", code: "IMG/01", label: lang==="fr"?"Match du jeudi":"Donnerstagspiel" });
-      document.getElementById("about-2").innerHTML = ph({ variant: "navy", code: "IMG/02", label: lang==="fr"?"Pelouse de Horgen":"Wiese Horgen", sun: true });
-      document.getElementById("about-3").innerHTML = ph({ code: "IMG/03", label: lang==="fr"?"Apéro de fin d'été · 2025":"Sommer-Apéro · 2025" });
+      document.getElementById("hero-img").innerHTML = img({
+        src: "images/hero/Jokari Zurich.png",
+        alt: lang==="fr"?"Match au crépuscule · Horgen":"Spiel in der Dämmerung",
+        fallback: { variant: "navy", code: "HERO/01", label: lang==="fr"?"Match au crépuscule · Horgen":"Spiel in der Dämmerung", sun: true }
+      });
+      document.getElementById("about-1").innerHTML = img({
+        src: "images/jokari/int-hulot-plage-ok-.jpg",
+        alt: lang==="fr"?"Match du jeudi":"Donnerstagspiel",
+        fallback: { variant: "sand", code: "IMG/01", label: lang==="fr"?"Match du jeudi":"Donnerstagspiel" }
+      });
+      document.getElementById("about-2").innerHTML = img({
+        src: "images/hero/Captureeiffel.PNG",
+        alt: lang==="fr"?"Pelouse de Horgen":"Wiese Horgen",
+        fallback: { variant: "navy", code: "IMG/02", label: lang==="fr"?"Pelouse de Horgen":"Wiese Horgen", sun: true }
+      });
+      document.getElementById("about-3").innerHTML = img({
+        src: "images/jokari/e783d11e810aecb89f140ce5270236b3.jpg",
+        alt: lang==="fr"?"Apéro de fin d'été · 2025":"Sommer-Apéro · 2025",
+        fallback: { code: "IMG/03", label: lang==="fr"?"Apéro de fin d'été · 2025":"Sommer-Apéro · 2025" }
+      });
 
       // Events
       const grid = document.getElementById("home-events");
@@ -129,9 +145,14 @@
           const time = lang === "fr" ? ev.time : ev.timeDe;
           const desc = lang === "fr" ? ev.descFr : ev.descDe;
           const typeTag = lang === "fr" ? ev.type : ev.typeDe;
+          const thumbHtml = img({
+            src: ev.image,
+            alt: title,
+            fallback: { variant: isFree?"sand":"navy", code: "EVT/"+(ev.id||"").slice(0,3).toUpperCase(), label: ev.location, sun: !isFree }
+          });
           return `
             <article class="card">
-              <div class="event-thumb"><a href="evenement.html?id=${ev.id}">${ph({ variant: isFree?"sand":"navy", code: "EVT/"+ev.id.slice(0,3).toUpperCase(), label: ev.location, sun: !isFree })}</a></div>
+              <div class="event-thumb"><a href="evenement.html?id=${ev.id}">${thumbHtml}</a></div>
               <div class="event-body">
                 <div class="event-tags">
                   <span class="tag ${isFree?"tag-navy":"tag-red"}">${typeTag}</span>

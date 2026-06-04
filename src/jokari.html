@@ -16,7 +16,7 @@
       <span class="eyebrow eyebrow-red" data-fr="Le jeu" data-de="Das Spiel"></span>
       <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:50px;align-items:end;margin-top:20px;" class="head-grid">
         <h1 class="hero-title" data-fr="Le Jokari, ou&#10;l'élégance du rebond." data-de="Jokari, oder&#10;die Eleganz des Rückpralls."></h1>
-        <p style="font-size:17px;line-height:1.7;color:rgba(26,23,20,0.8);max-width:420px;" data-fr="Trois balles, un socle, et soixante-quinze ans d'histoire. Ce qu'il faut savoir avant de prendre une raquette." data-de="Drei Bälle, ein Sockel und 75 Jahre Geschichte. Was Sie vor dem Schläger wissen sollten."></p>
+        <p style="font-size:17px;line-height:1.7;color:rgba(26,23,20,0.8);max-width:420px;" data-fr="1 balle, 1 élastique, un socle, 2 joueurs élégants et soixante-quinze ans d'histoire. Ce qu'il faut savoir avant de prendre une raquette." data-de="1 Ball, 1 Gummiband, ein Sockel, 2 elegante Spieler und 75 Jahre Geschichte. Was Sie vor dem Schläger wissen sollten."></p>
       </div>
     </div>
   </section>
@@ -119,19 +119,27 @@
   <script src="js/main.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("hero-archive").innerHTML = ph({ variant:"navy", code:"HIST/01", label:"Biarritz, 1953 · archives", sun:true });
+      document.getElementById("hero-archive").innerHTML = img({
+        src: "images/jokari/Jokari History.PNG",
+        alt: "Biarritz, 1953 · archives",
+        fallback: { variant:"navy", code:"HIST/01", label:"Biarritz, 1953 · archives", sun:true }
+      });
       const labels = [
-        ["sand","GAL/01","Open Zürich · 2024",true],
-        ["",    "GAL/02","Apéro de mai",false],
-        ["red", "GAL/03","Raquettes",false],
-        ["navy","GAL/04","Lac",false],
-        ["",    "GAL/05","Finale 2025",false],
-        ["sand","GAL/06","Le bureau, en réunion",true],
-        ["navy","GAL/07","Coucher de soleil",false],
-        ["",    "GAL/08","Coupe Biarritz",false],
+        ["sand","GAL/01","Open Zürich · 2024",true,  "images/jokari/Jokari.PNG"],
+        ["",    "GAL/02","Apéro de mai",false,        "images/jokari/int-hulot-plage-ok-.jpg"],
+        ["red", "GAL/03","Raquettes",false,            "images/jokari/Captureaaaa.PNG"],
+        ["navy","GAL/04","Lac",false,                  "images/jokari/Captureffff.PNG"],
+        ["",    "GAL/05","Finale 2025",false,          "images/jokari/man-taking-basque-paddle-ball-game-jokari-21372762.jpg.webp"],
+        ["sand","GAL/06","Le bureau, en réunion",true, "images/jokari/e783d11e810aecb89f140ce5270236b3.jpg"],
+        ["navy","GAL/07","Coucher de soleil",false,    null],
+        ["",    "GAL/08","Coupe Biarritz",false,       null],
       ];
       labels.forEach((l,i) => {
-        document.getElementById("g"+(i+1)).innerHTML = ph({variant:l[0], code:l[1], label:l[2], sun:l[3]});
+        document.getElementById("g"+(i+1)).innerHTML = img({
+          src: l[4],
+          alt: l[2],
+          fallback: { variant:l[0], code:l[1], label:l[2], sun:l[3] }
+        });
       });
     });
   </script>

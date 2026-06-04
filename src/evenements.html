@@ -157,9 +157,14 @@
         const desc = lang === "fr" ? ev.descFr : ev.descDe;
         const typeTag = lang === "fr" ? ev.type : ev.typeDe;
         const lowSpots = ev.spotsLeft / ev.spotsTotal < 0.4;
+        const thumbHtml = img({
+          src: ev.image,
+          alt: title,
+          fallback: { variant: isFree?"sand":"navy", code: "EVT/"+(ev.id||"").slice(0,3).toUpperCase(), label: ev.location, sun: !isFree }
+        });
         return `
           <article class="card" id="${ev.id}">
-            <div class="event-thumb">${ph({ variant: isFree?"sand":"navy", code: "EVT/"+ev.id.slice(0,3).toUpperCase(), label: ev.location, sun: !isFree })}</div>
+            <div class="event-thumb">${thumbHtml}</div>
             <div class="event-body">
               <div class="event-tags">
                 <span class="tag ${isFree?"tag-navy":"tag-red"}">${typeTag}</span>
