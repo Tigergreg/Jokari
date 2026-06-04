@@ -46,12 +46,24 @@ jobs:
           docker push $IMAGE:${{ github.sha }}
           docker push $IMAGE:latest
 
-      - name: Deploy to Cloud Run
+      - name: Create env vars file
         env:
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
           JOKARI_FROM_EMAIL: ${{ secrets.JOKARI_FROM_EMAIL }}
           JOKARI_FROM_NAME: ${{ secrets.JOKARI_FROM_NAME }}
           JOKARI_ADMIN_EMAILS: ${{ secrets.JOKARI_ADMIN_EMAILS }}
+        run: |
+          cat > env-vars.yaml <<EOF
+          GCP_PROJECT_ID: "${{ secrets.GCP_PROJECT_ID }}"
+          NODE_ENV: "production"
+          SENDGRID_API_KEY: "${SENDGRID_API_KEY}"
+          JOKARI_FROM_EMAIL: "${JOKARI_FROM_EMAIL}"
+          JOKARI_FROM_NAME: "${JOKARI_FROM_NAME}"
+          JOKARI_ADMIN_EMAILS: "${JOKARI_ADMIN_EMAILS}"
+          EOF
+          echo "env-vars.yaml created with $(grep -c ':' env-vars.yaml) variables"
+
+      - name: Deploy to Cloud Run
         run: |
           gcloud run deploy $SERVICE \
             --image=$IMAGE:${{ github.sha }} \
@@ -63,7 +75,7 @@ jobs:
             --cpu=1 \
             --min-instances=0 \
             --max-instances=10 \
-            --set-env-vars=^@^GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}@NODE_ENV=production@SENDGRID_API_KEY=${SENDGRID_API_KEY}@JOKARI_FROM_EMAIL=${JOKARI_FROM_EMAIL}@JOKARI_FROM_NAME=${JOKARI_FROM_NAME}@JOKARI_ADMIN_EMAILS=${JOKARI_ADMIN_EMAILS}
+            --env-vars-file=env-vars.yaml
 
       - name: Show service URL
         run: |
