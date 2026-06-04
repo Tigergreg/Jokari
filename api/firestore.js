@@ -1,15 +1,66 @@
-// api/firestore.js — Firestore client + seed event data
+// api/firestore.js — Firestore client + normalization helpers
 const { Firestore } = require("@google-cloud/firestore");
 
 const projectId = process.env.GCP_PROJECT_ID || "jokari";
 
 const db = new Firestore({
   projectId,
-  // On Cloud Run, default credentials are picked up from the service account
-  // attached to the service. Locally, use GOOGLE_APPLICATION_CREDENTIALS.
 });
 
-// Fallback events used when Firestore is unreachable (e.g. local dev w/o creds).
+// ====================================================================
+// Helpers de normalisation
+// ====================================================================
+
+// Convertit toute date en format ISO YYYY-MM-DD (ou null si non parseable)
+// Gère : "2026-04-29", "2026_04_29", "2026/04/29", "A determiner", Timestamp, Date
+function normalizeDate(value) {
+  if (!value) return null;
+  if (typeof value === "object" && typeof value.toDate === "function") {
+    try { return value.toDate().toISOString().slice(0, 10); } catch (e) { return null; }
+  }
+  if (value instanceof Date) {
+    return isNaN(value) ? null : value.toISOString().slice(0, 10);
+  }
+  if (typeof value !== "string") return null;
+  const v = value.trim();
+  const normalized = v.replace(/[_/.]/g, "-");
+  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+  const d = new Date(v);
+  if (!isNaN(d)) return d.toISOString().slice(0, 10);
+  return null;
+}
+
+// Convertit un nombre / string en nombre, ou 0 par défaut
+function toNumber(value, fallback = 0) {
+  if (value === null || value === undefined || value === "") return fallback;
+  const n = parseFloat(value);
+  return isNaN(n) ? fallback : n;
+}
+
+// Génère un libellé de date français lisible à partir d'un ISO (ex. "06 juin 2026")
+const MONTHS_FR = ["janvier", "février", "mars", "avril", "mai", "juin",
+                   "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+const MONTHS_DE = ["Januar", "Februar", "März", "April", "Mai", "Juni",
+                   "Juli", "August", "September", "Oktober", "November", "Dezember"];
+function formatDateFr(iso) {
+  if (!iso) return "À déterminer";
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return iso;
+  return `${m[3]} ${MONTHS_FR[parseInt(m[2], 10) - 1]} ${m[1]}`;
+}
+function formatDateDe(iso) {
+  if (!iso) return "Wird festgelegt";
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return iso;
+  return `${m[3]}. ${MONTHS_DE[parseInt(m[2], 10) - 1]} ${m[1]}`;
+}
+
+// ====================================================================
+// EVENTS
+// ====================================================================
+
+// Fallback events used when Firestore is unreachable
 const FALLBACK_EVENTS = [
   { id: "open-zh", title: "Open de Zürich", titleDe: "Open Zürich",
     date: "2026-06-06", dateFr: "06 juin 2026", dateDe: "06. Juni 2026",
@@ -18,34 +69,72 @@ const FALLBACK_EVENTS = [
     descFr: "Le tournoi de printemps. Format double, finale au crépuscule, apéro qui finit tard.",
     descDe: "Das Frühlingsturnier. Doppelmodus, Finale in der Dämmerung, Apéro bis spät.",
     type: "tournoi", typeDe: "Turnier" },
-  { id: "biarritz-cup", title: "Coupe Biarritz", titleDe: "Biarritz-Cup",
-    date: "2026-07-12", dateFr: "12 juillet 2026", dateDe: "12. Juli 2026",
-    time: "14h — 22h", timeDe: "14–22 Uhr",
-    location: "Strandbad Käpfnach", price: 60, spotsTotal: 48, spotsLeft: 23,
-    descFr: "Notre tournoi-phare, en hommage à la patrie du jeu. Tenue blanche conseillée.",
-    descDe: "Unser Hauptturnier zu Ehren der Heimat des Spiels. Weisse Kleidung empfohlen.",
-    type: "tournoi", typeDe: "Turnier" },
-  { id: "lac-classique", title: "Lac Classique", titleDe: "See-Klassiker",
-    date: "2026-09-19", dateFr: "19 sept. 2026", dateDe: "19. Sept. 2026",
-    time: "11h — 19h", timeDe: "11–19 Uhr",
-    location: "Hafen Horgen", price: 35, spotsTotal: 24, spotsLeft: 18,
-    descFr: "Tournoi automnal en simple. Couleurs d'octobre, balles bien froides.",
-    descDe: "Herbstliches Einzelturnier. Oktoberfarben, schön kühle Bälle.",
-    type: "tournoi", typeDe: "Turnier" },
-  { id: "demo-day", title: "Journée découverte", titleDe: "Schnuppertag",
-    date: "2026-05-23", dateFr: "23 mai 2026", dateDe: "23. Mai 2026",
-    time: "13h — 17h", timeDe: "13–17 Uhr",
-    location: "Pelouse de Horgen", price: 0, spotsTotal: 50, spotsLeft: 32,
-    descFr: "Initiation gratuite, raquettes prêtées. Pour curieux et débutants.",
-    descDe: "Gratis-Einführung, Schläger gestellt. Für Neugierige und Anfänger.",
-    type: "initiation", typeDe: "Einführung" },
 ];
+
+// Mots-clés type → typeDe
+const TYPE_DE_MAP = {
+  tournoi: "Turnier",
+  initiation: "Einführung",
+  rencontre: "Treffen",
+  formation: "Schulung",
+  apero: "Apéro",
+};
+
+// Normalise un event Firestore — gère les schémas FR (titre/prix/lieu...) et EN (title/price/location...)
+function normalizeEventOutput(id, data) {
+  const date = normalizeDate(data.date) || data.date; // garde "A determiner" si non parseable, pour mémoire
+  const isoDate = normalizeDate(data.date);
+  const title    = data.title    || data.titre    || "";
+  const titleDe  = data.titleDe  || data.titreDe  || title;
+  const time     = data.time     || data.heure    || "";
+  const timeDe   = data.timeDe   || data.heureDe  || time;
+  const type     = data.type     || data.categorie || "tournoi";
+  const typeDe   = data.typeDe   || TYPE_DE_MAP[type] || type;
+  const location = data.location || data.lieu     || "";
+  const price    = toNumber(data.price ?? data.prix, 0);
+  const spotsTotal = toNumber(data.spotsTotal ?? data.placestotal ?? data.placesTotal, 0);
+  const spotsLeft  = toNumber(data.spotsLeft  ?? data.placesrestantes ?? data.placesRestantes, spotsTotal);
+  const dateFr   = data.dateFr   || formatDateFr(isoDate);
+  const dateDe   = data.dateDe   || formatDateDe(isoDate);
+
+  return {
+    id,
+    title,
+    titleDe,
+    date: isoDate || data.date || null,
+    dateFr,
+    dateDe,
+    time,
+    timeDe,
+    type,
+    typeDe,
+    location,
+    price,
+    spotsTotal,
+    spotsLeft,
+    descFr: data.descFr || data.description || "",
+    descDe: data.descDe || data.beschreibung || "",
+    bodyFr: data.bodyFr || data.corps || null,
+    bodyDe: data.bodyDe || null,
+    image: data.image || null,
+    cover: data.cover || "navy",
+    status: data.status || data.statut || "open",
+  };
+}
 
 async function listEvents() {
   try {
-    const snap = await db.collection("events").orderBy("date", "asc").get();
+    const snap = await db.collection("events").get();
     if (snap.empty) return FALLBACK_EVENTS;
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const events = snap.docs.map(d => normalizeEventOutput(d.id, d.data()));
+    // Tri par date ISO (les "non datés" à la fin)
+    events.sort((a, b) => {
+      if (!a.date && !b.date) return 0;
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return a.date.localeCompare(b.date);
+    });
+    return events;
   } catch (err) {
     console.warn("[firestore] listEvents failed, using fallback:", err.message);
     return FALLBACK_EVENTS;
@@ -55,10 +144,14 @@ async function listEvents() {
 async function getEvent(id) {
   try {
     const doc = await db.collection("events").doc(id).get();
-    if (doc.exists) return { id: doc.id, ...doc.data() };
+    if (doc.exists) return normalizeEventOutput(doc.id, doc.data());
   } catch (err) { console.warn("[firestore] getEvent failed:", err.message); }
   return FALLBACK_EVENTS.find(e => e.id === id) || null;
 }
+
+// ====================================================================
+// NEWS
+// ====================================================================
 
 async function listNews() {
   try {
@@ -77,6 +170,10 @@ async function getNewsItem(id) {
   } catch (err) { console.warn("[firestore] getNewsItem failed:", err.message); }
   return null;
 }
+
+// ====================================================================
+// ARTICLES
+// ====================================================================
 
 async function listArticles({ category, limit } = {}) {
   try {
@@ -100,6 +197,10 @@ async function getArticle(id) {
   return null;
 }
 
+// ====================================================================
+// GENERIC
+// ====================================================================
+
 async function saveDocument(collection, data) {
   const ref = await db.collection(collection).add({
     ...data,
@@ -108,9 +209,10 @@ async function saveDocument(collection, data) {
   return { id: ref.id };
 }
 
-// ---- Members lookup for auth ----
-// Cherche un membre par email (insensible à la casse).
-// Gère les 2 schémas existants : ancien (prenom/nom/statut) + nouveau (firstName/lastName/status).
+// ====================================================================
+// MEMBERS
+// ====================================================================
+
 async function getMemberByEmail(email) {
   if (!email) return null;
   const normalized = email.toLowerCase().trim();
@@ -123,7 +225,6 @@ async function getMemberByEmail(email) {
       const d = snap.docs[0];
       return normalizeMember({ id: d.id, ...d.data() });
     }
-    // Fallback: certains docs ont peut-être l'email en casse mixte → on scanne (lent mais OK pour <100 docs)
     const all = await db.collection("members").get();
     for (const d of all.docs) {
       const data = d.data();
@@ -138,7 +239,6 @@ async function getMemberByEmail(email) {
   }
 }
 
-// Normalise les 2 schémas de membres pour exposer un objet cohérent à l'auth.
 function normalizeMember(raw) {
   if (!raw) return null;
   return {
@@ -164,4 +264,7 @@ module.exports = {
   getArticle,
   saveDocument,
   getMemberByEmail,
+  normalizeDate,
+  formatDateFr,
+  formatDateDe,
 };
