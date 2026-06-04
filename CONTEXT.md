@@ -1,405 +1,414 @@
-# 🎾 JOKARI CLUB ZÜRICH — Fichier de contexte projet
-> Collez ce fichier en début de nouvelle conversation avec Claude pour reprendre exactement où on en était.
+# Jokari Club Zürich — CONTEXT.md
+
+> **Dernière mise à jour** : 4 juin 2026
+> **Statut global** : Phase B (authentification) terminée. Phase A (contenu/images) partiellement faite.
+> **Site en production** : https://jokari.ch
 
 ---
 
-## 👥 Membres fondateurs
+## 📋 Vue d'ensemble du projet
 
-| Nom | Rôle | Email |
-|---|---|---|
-| Grégoire Mouly-Aigrot | Président | gmoulyaigrot@gmail.com |
-| Christine Mouly-Aigrot | Vice-Présidente & Trésorière | christine.hue@gmail.com |
+**Le Jokari Club Zürich** est une association sportive suisse (basée à Horgen, ZH) qui promeut le Jokari (jeu de raquette basque). Le projet a deux dimensions :
 
----
+1. **Légal/Administratif** : Association constituée le 29 avril 2026, statuts bilingues FR/DE conformes au droit suisse (art. 60 ss CC).
+2. **Digital** : Site web https://jokari.ch hébergé sur Google Cloud Platform, avec authentification, espace membre/bureau, gestion d'événements, etc.
 
-## 🌐 Domaine & Hébergement
-
-| Élément | Valeur |
-|---|---|
-| Domaine | `jokari.ch` |
-| Registrar | GoDaddy |
-| Hébergement | Google Cloud Platform |
-| URL Cloud Run | `https://jokari-website-edt44ot4za-oa.a.run.app` |
-| IP statique | `34.110.211.61` |
-| URL finale | `https://jokari.ch` ✅ (SSL ACTIVE) |
-| URL www | `https://www.jokari.ch` ✅ (SSL ACTIVE) |
+**Acteurs** :
+- **Grégoire Mouly-Aigrot** : Président. Email : `gmoulyaigrot@gmail.com`. Rôle Firestore : `accesslevel: admin`, `role: président`.
+- **Christine Mouly-Aigrot** : Vice-présidente, Trésorière. Email : `christine.hue@gmail.com`. Rôle Firestore : `accesslevel: admin`, `role: vice-présidente`.
 
 ---
 
-## ☁️ Google Cloud Platform (GCP)
+## 🏗️ Architecture technique
 
-| Élément | Valeur |
-|---|---|
-| Project Name | `Jokari` |
-| Project ID | `jokari` |
-| Project Number | `446977560181` |
-| Compte | `gmoulyaigrot@gmail.com` |
-| Région principale | `europe-west6` (Zurich) |
+### Stack
+- **Backend** : Node.js + Express, déployé sur **Google Cloud Run** (`europe-west6`, service `jokari-website`)
+- **DB** : **Google Firestore** (mode native, `europe-west1`)
+- **Storage** : Google Cloud Storage (`gs://jokari-media`)
+- **CI/CD** : GitHub Actions → Artifact Registry → Cloud Run
+- **Domain** : `jokari.ch` (GoDaddy), SSL actif sur `jokari.ch` ET `www.jokari.ch`
+- **Email** : SendGrid (domain authentication verified, Single Sender `contact@jokari.ch`)
+- **Forwarding mail** : ImprovMX (4 alias → Gmail)
 
-### Services activés ✅
-- Cloud Run → service `jokari-website`
-- Artifact Registry → `jokari-repo` (europe-west6)
-- Firestore → `(default)` (europe-west1, mode natif)
-- Cloud Storage → `gs://jokari-media` (europe-west1)
-- Cloud Build, Compute Engine, Storage
+### GCP
+- Project ID : `jokari` (number `446977560181`)
+- Account : `gmoulyaigrot@gmail.com`
+- Cloud Run : `jokari-website` (region `europe-west6`)
+- Static IP du Load Balancer : `34.110.211.61`
+- Artifact Registry : `jokari-repo`
 
-### Load Balancer (complet) ✅
-| Composant | Nom |
-|---|---|
-| IP statique | `jokari-ip` → `34.110.211.61` |
-| NEG | `jokari-neg` |
-| Backend | `jokari-backend` |
-| URL Map | `jokari-urlmap` |
-| HTTP Proxy | `jokari-http-proxy` |
-| HTTPS Proxy | `jokari-https-proxy` |
-| HTTP Rule | `jokari-http-rule` (port 80) |
-| HTTPS Rule | `jokari-https-rule` (port 443) |
-| Certificat SSL | `jokari-ssl` |
+### GitHub
+- Repo : `Tigergreg/Jokari`
+- Branche : `main`
+- CI/CD : `.github/workflows/deploy.yml`
+- 8 secrets configurés : `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_SA_KEY`, `SENDGRID_API_KEY`, `JOKARI_FROM_EMAIL`, `JOKARI_FROM_NAME`, `JOKARI_ADMIN_EMAILS`, `JWT_SECRET`
 
-### Statut certificat SSL ✅
-```
-jokari.ch:     ACTIVE ✅
-www.jokari.ch: ACTIVE ✅
-```
-→ Validé 3 juin 2026 — résolu spontanément après ~1 semaine de propagation
-
-### Service Account
-- Nom : `github-deployer@jokari.iam.gserviceaccount.com`
-- Clé JSON : `C:\Users\gmoul\jokari-gcp-key.json` ⚠️ NE PAS COMMITTER
-- Rôles : `run.admin`, `artifactregistry.admin`, `iam.serviceAccountUser`, `datastore.user`, `storage.admin`
+### Environment variables (Cloud Run)
+Injectées via `env-vars.yaml` au déploiement (méthode robuste pour caractères spéciaux) :
+- `GCP_PROJECT_ID=jokari`
+- `NODE_ENV=production`
+- `SENDGRID_API_KEY` (à régénérer — exposée temporairement)
+- `JOKARI_FROM_EMAIL=contact@jokari.ch`
+- `JOKARI_FROM_NAME=Jokari Club Zurich`
+- `JOKARI_ADMIN_EMAILS=gmoulyaigrot@gmail.com;christine.hue@gmail.com` (séparateur `;` car `,` réservé par Cloud Run)
+- `JOKARI_PUBLIC_URL=https://jokari.ch`
+- `JWT_SECRET` (clé hex 64 octets, stockée dans GitHub Secrets)
 
 ---
 
-## 🐙 GitHub
-
-| Élément | Valeur |
-|---|---|
-| Username | `Tigergreg` |
-| Repository | `https://github.com/Tigergreg/Jokari` |
-| Branche | `main` |
-| Dossier local Windows | `C:\Users\gmoul\jokari-site` |
-
-### Secrets GitHub (7) ✅
-- `GCP_PROJECT_ID` = `jokari`
-- `GCP_REGION` = `europe-west6`
-- `GCP_SA_KEY` = contenu JSON clé service account
-- `SENDGRID_API_KEY` = clé runtime SendGrid (synchronisée avec Cloud Run)
-- `JOKARI_FROM_EMAIL` = `contact@jokari.ch`
-- `JOKARI_FROM_NAME` = `Jokari Club Zurich`
-- `JOKARI_ADMIN_EMAILS` = `gmoulyaigrot@gmail.com;christine.hue@gmail.com`
-
-### Pipeline CI/CD ✅
-- Trigger : push sur `main`
-- Build Docker → Artifact Registry → Cloud Run
-- Durée : ~2min 30s
-- **Injection automatique des 6 env vars** via `--set-env-vars=^@^...` (séparateur custom `@` pour gérer `;` dans les valeurs)
-- Cloud Run revisions étanches : chaque push redéploie sans casser SendGrid
-
----
-
-## 📧 SendGrid — Domain Authentication ✅ VERIFIED & ACTIF
-
-| Élément | Valeur |
-|---|---|
-| Compte | `gmoulyaigrot@gmail.com` |
-| Domaine | `jokari.ch` |
-| Sender | `Jokari Club Zürich <contact@jokari.ch>` |
-| Domain Authentication | ✅ **Verified** |
-| Link Branding | ✅ Actif (`url7025.jokari.ch`) |
-| Single Sender Verification | ✅ Verified (`contact@jokari.ch`) |
-| Test mail-tester | **8/10** (-1 IP partagée SpamCop, -1 SpamAssassin lié) |
-| DKIM | ✅ Aligned & Valid |
-| SPF | ✅ Pass |
-| DMARC | ✅ Pass |
-| **Mailer code intégré** | ✅ **Actif** (4 endpoints API envoient des emails) |
-
-### Configuration SendGrid actuelle (User ID `107218164`)
-| Type | Host | Value |
-|---|---|---|
-| CNAME | `url7025` | `sendgrid.net` |
-| CNAME | `107218164` | `sendgrid.net` |
-| CNAME | `em8175` | `u107218164.wl165.sendgrid.net` |
-| CNAME | `s1._domainkey` | `s1.domainkey.u107218164.wl165.sendgrid.net` |
-| CNAME | `s2._domainkey` | `s2.domainkey.u107218164.wl165.sendgrid.net` |
-| TXT | `_dmarc` | `v=DMARC1; p=none;` |
-
-⚠️ Ancienne config supprimée le 3 juin 2026 (`em7300`, `url8383`) — User ID identique mais sélecteurs `em`/`url` régénérés. Plus de cache négatif côté SendGrid.
-
-### Clés API SendGrid
-- `SENDGRID_API_KEY` (GitHub secret) — utilisée par CI/CD pour injection Cloud Run
-- `Magic Link` — clé dédiée magic links (espace membres futur)
-- `jokari-mailtest` — clé pour tests mail-tester
-- `jokari-cloudrun` — clé runtime Cloud Run (créée 4 juin 2026)
-
-### Endpoints API qui envoient des emails ✅
-Tous via `api/mailer.js` (module SendGrid centralisé) :
-| Endpoint | Email confirmation (utilisateur) | Email notif (bureau) |
-|---|---|---|
-| `POST /api/members` | "Votre demande d'adhésion au Jokari Club Zürich" | "Nouvelle adhésion : Prénom Nom" |
-| `POST /api/registrations` | "Inscription confirmée : [titre event]" | "Nouvelle inscription : [event] ([nom])" |
-| `POST /api/newsletter` | "Bienvenue dans la newsletter du Jokari Club Zürich" | — |
-| `POST /api/contact` | "Nous avons bien reçu votre message" | "Contact jokari.ch — [sujet]" |
-
-- Bureau = destinataires de `JOKARI_ADMIN_EMAILS` (Grégoire + Christine)
-- Pattern fire-and-forget : si SendGrid plante, le formulaire répond quand même `ok: true`
-- `reply_to` configuré : le bureau peut répondre directement au membre via Gmail
-
-### Variables d'environnement Cloud Run (6) ✅
-Injectées automatiquement par le workflow `.github/workflows/deploy.yml` :
-| Variable | Valeur |
-|---|---|
-| `GCP_PROJECT_ID` | `jokari` |
-| `NODE_ENV` | `production` |
-| `SENDGRID_API_KEY` | (secret GitHub) |
-| `JOKARI_FROM_EMAIL` | `contact@jokari.ch` |
-| `JOKARI_FROM_NAME` | `Jokari Club Zurich` |
-| `JOKARI_ADMIN_EMAILS` | `gmoulyaigrot@gmail.com;christine.hue@gmail.com` |
-
-⚠️ Le séparateur dans `JOKARI_ADMIN_EMAILS` est `;` (pas `,`) car la virgule est réservée par Cloud Run.
-
----
-
-## 📨 ImprovMX — Email Forwarding ✅ ACTIF
-
-| Élément | Valeur |
-|---|---|
-| Compte | `gmoulyaigrot@gmail.com` |
-| Domaine | `jokari.ch` |
-| Plan | Free |
-| Statut DNS | ✅ Tous verts |
-
-### Aliases configurés
-| Alias | Redirige vers |
-|---|---|
-| `gregoire@jokari.ch` | `gmoulyaigrot@gmail.com` |
-| `christine@jokari.ch` | `christine.hue@gmail.com` |
-| `admin@jokari.ch` | `gmoulyaigrot@gmail.com` + `christine.hue@gmail.com` |
-| `contact@jokari.ch` | `gmoulyaigrot@gmail.com` + `christine.hue@gmail.com` |
-
-### Single Sender Verification
-| Élément | Statut |
-|---|---|
-| `contact@jokari.ch` | ✅ **Verified** (4 juin 2026) |
-
----
-
-## 🌐 DNS GoDaddy (état complet) ✅
-
-| Type | Nom | Valeur | TTL |
-|---|---|---|---|
-| A | `@` | `34.110.211.61` | 600s |
-| A | `www` | `34.110.211.61` | 1h |
-| NS | `@` | `ns59.domaincontrol.com` | 1h |
-| NS | `@` | `ns60.domaincontrol.com` | 1h |
-| **MX** | `@` | `mx1.improvmx.com` (priorité 10) | 1h |
-| **MX** | `@` | `mx2.improvmx.com` (priorité 20) | 1h |
-| CNAME | `107218164` | `sendgrid.net` | 1h |
-| CNAME | `em8175` | `u107218164.wl165.sendgrid.net` | 600s |
-| CNAME | `s1._domainkey` | `s1.domainkey.u107218164.wl165.sendgrid.net` | 1h |
-| CNAME | `s2._domainkey` | `s2.domainkey.u107218164.wl165.sendgrid.net` | 1h |
-| CNAME | `url7025` | `sendgrid.net` | 600s |
-| TXT | `@` | `google-site-verification=jScrZBUNeNDG8reFGupuoQ8hxyLdNAhhLz3NcBkFNVM` | 1h |
-| **TXT** | `@` | `v=spf1 include:spf.improvmx.com include:sendgrid.net ~all` | 1h |
-| TXT | `_dmarc` | `v=DMARC1; p=none;` | 1h |
-
-**En gras** : ajouts/modifications du 3 juin 2026.
-
----
-
-## 🗄️ Firestore
-
-### `members/` ✅
-- Grégoire Mouly-Aigrot (président, honoraire, actif, gmoulyaigrot@gmail.com)
-- Christine Mouly-Aigrot (vice-présidente, honoraire, actif, christine.hue@gmail.com)
-
-### `events/` ✅
-| ID | Titre | Date | Prix |
-|---|---|---|---|
-| `open-zh` | Open de Zürich | 06 juin 2026 | 45 CHF |
-| `biarritz-cup` | Coupe Biarritz | 12 juillet 2026 | 60 CHF |
-| `lac-classique` | Lac Classique | 19 sept. 2026 | 35 CHF |
-
-### À créer
-- `registrations/`, `newsletter/`, `articles/`, `news/`
-
----
-
-## 📁 Structure projet
+## 🗂️ Structure du repo
 
 ```
-C:\Users\gmoul\jokari-site\
-├── .github/workflows/deploy.yml  ← injection auto des 6 env vars
-├── api/
-│   ├── server.js                 ← 4 endpoints avec emails (fire-and-forget)
-│   ├── firestore.js
-│   ├── mailer.js                 ← module SendGrid centralisé (nouveau)
-│   ├── package.json              ← + @sendgrid/mail
-│   └── package-lock.json
-├── src/
-│   ├── index.html, jokari.html, evenements.html
-│   ├── lifestyle.html, boutique.html, rejoindre.html
-│   ├── contact.html
+jokari-site/
+├── api/                                # Backend Express
+│   ├── server.js                       # Routes + middlewares
+│   ├── auth.js                         # JWT magic links + cookies httpOnly
+│   ├── firestore.js                    # Client Firestore + normalisation
+│   ├── mailer.js                       # SendGrid (7 templates)
+│   ├── package.json
+│   └── ...
+├── src/                                # Frontend statique
+│   ├── index.html                      # Accueil
+│   ├── jokari.html                     # Page "Le Jokari"
+│   ├── evenements.html                 # Calendrier + formulaire inscription
+│   ├── evenement.html                  # Détail d'un événement
+│   ├── actualites.html, actualite.html # Liste + détail news
+│   ├── lifestyle.html, article.html    # Magazine + détail article
+│   ├── boutique.html                   # T-shirt + tote bag
+│   ├── rejoindre.html                  # Formulaire d'adhésion
+│   ├── contact.html                    # Formulaire contact + adresse
+│   ├── connexion.html                  # Magic link login + état "déjà connecté"
+│   ├── espace-membre.html              # Espace membre privé
+│   ├── espace-bureau.html              # Dashboard admin (bureau only)
+│   ├── 404.html
 │   ├── css/style.css
 │   ├── js/
-│   │   ├── api.js        ← USE_MOCK = false ✅
-│   │   └── main.js
+│   │   ├── api.js                      # Module JokariAPI (24+ endpoints)
+│   │   └── main.js                     # Nav, footer, i18n, helpers (ph, img)
 │   └── images/
-│       ├── hero/         ← Captureeiffel.PNG, Jokari Zurich.png ✅
-│       ├── events/       ← ⚠️ VIDE - à ajouter
-│       ├── jokari/       ✅
-│       ├── boutique/     ✅
-│       ├── members/      ← christine.PNG ✅
-│       ├── articles/     ← ⚠️ VIDE
-│       └── news/         ← ⚠️ VIDE
+│       ├── hero/                       # Jokari Zurich.png, Captureeiffel.PNG
+│       ├── jokari/                     # 7 photos (histoire, plage, etc.)
+│       ├── boutique/                   # Jokari.PNG
+│       ├── members/                    # christine.PNG
+│       ├── events/                     # (vide — à compléter)
+│       ├── articles/                   # (vide)
+│       └── news/                       # (vide)
+├── .github/workflows/deploy.yml        # CI/CD
 ├── Dockerfile
-├── nginx.conf
-└── .gitignore
+└── CONTEXT.md                          # Ce fichier
 ```
 
 ---
 
-## 🚀 Roadmap
+## 🔐 Phase B — Authentification (COMPLÈTEMENT TERMINÉE ✅)
 
-### ✅ Phase 0 — Infrastructure (TERMINÉ)
-- GCP, GitHub, CI/CD, Firestore, Cloud Storage
-- DNS GoDaddy, Load Balancer, IP statique
-- Site live sur Cloud Run, mode MOCK désactivé
-- Membres + événements dans Firestore
+### Système d'auth par magic link
 
-### ✅ Phase 0bis — Email (TERMINÉ 3 juin 2026)
-- SendGrid Domain Authentication ✅ Verified
-- SendGrid Link Branding ✅ Actif
-- ImprovMX forwarding ✅ Actif (4 aliases)
-- SPF combiné ImprovMX + SendGrid ✅
-- DKIM aligné ✅
-- DMARC ✅
-- Test mail-tester : **8/10** (auth parfaite, -1 IP partagée trial)
+**Flow** :
+1. User saisit son email sur `/connexion.html`
+2. Backend (`POST /api/auth/request`) cherche dans Firestore `members` par email
+3. Si `status: actif` → magic link JWT (15 min) envoyé par SendGrid (avec `disableTracking: true` pour pointer direct sur `jokari.ch`, pas `url7025.jokari.ch`)
+4. User clique le bouton dans l'email → `https://jokari.ch/connexion.html?token=...`
+5. Frontend détecte le `?token=` → appelle `GET /api/auth/verify?token=...`
+6. Backend valide le JWT → crée **cookie httpOnly secure SameSite=lax** de 7 jours
+7. Frontend redirige vers `/espace-membre.html` (ou `/espace-bureau.html` si admin)
 
-### ✅ Phase 0ter — Mailer & Single Sender (TERMINÉ 4 juin 2026)
-- Single Sender Verification `contact@jokari.ch` ✅ Verified
-- Module `api/mailer.js` créé (templates métier FR)
-- 4 endpoints API envoient des emails (members, registrations, newsletter, contact)
-- 6 variables Cloud Run injectées automatiquement via workflow GitHub Actions
-- Pipeline CI/CD étanche : push = redéploiement sans casser SendGrid
-- Test live : emails reçus en boîte de réception (pas spam)
+**Réponse identique** que l'email soit dans la base ou non (anti-énumération).
 
-### ⏳ Actions immédiates pour la prochaine session
-1. **Images événements** : générer/uploader `open-zh.jpg`, `biarritz-cup.jpg`, `lac-classique.jpg` dans `gs://jokari-media/events/`
-2. **Créer collections Firestore manquantes** : `registrations/`, `articles/`, `news/` (newsletter existe déjà)
-3. **Tester formulaire d'inscription événement** end-to-end (Firestore + mail)
-4. **Tester formulaire newsletter** standalone
-5. **Tester formulaire contact** standalone
+### Mapping de rôles
 
-### 🔜 Phase A — Contenu (reste à faire)
-- Ajouter images `src/images/events/` (open-zh.jpg, biarritz-cup.jpg, lac-classique.jpg)
-- Créer collections Firestore manquantes (`registrations`, `articles`, `news`)
-- Tester formulaires inscription event + newsletter + contact (bout en bout, déjà OK pour adhésion)
-- Vérifier affichage événements Firestore
+| Firestore | Frontend (JWT/session) |
+|---|---|
+| `accesslevel: admin` | `role: bureau` |
+| `accesslevel: member` ou absent | `role: member` |
+| `role: président` ou `vice-présidente` (Firestore) | `jobTitle: ...` (info métier, séparée de l'accès) |
 
-### 🔜 Phase B — Comptes membres
-- Magic link email via SendGrid (clé `Magic Link` prête, mailer.js réutilisable)
-- Espace membre, articles Lifestyle, upload photos
+### Endpoints d'auth (tous live)
 
-### 🔜 Phase C — Admin bureau
-- Dashboard admin, gestion événements, stats
+- `POST /api/auth/request` — Demande un magic link
+- `GET /api/auth/verify?token=xxx` — Vérifie le token et crée la session
+- `GET /api/auth/me` — Retourne `{ ok, member: ... | null }`
+- `POST /api/auth/logout` — Efface le cookie
 
-### 🔜 Upgrade éventuel SendGrid
-- Trial : 100 mails/jour, IP partagée (parfois SpamCop)
-- Essentials (~20€/mois) : 50K mails/mois, meilleure IP partagée
-- Pro (~90€/mois) : IP dédiée → score 10/10 garanti
-- **Décision** : rester sur trial tant que < 100 membres / pas de newsletter régulière
+### Middlewares
+
+- `auth.requireAuth` — Route protégée, doit être connecté
+- `auth.requireBureau` — Route admin only
+
+### Endpoints membres/admin
+
+- `GET /api/my-registrations` — Mes inscriptions (enrichies avec infos event)
+- `GET /api/my-articles` — Mes articles (placeholder, collection à créer)
+- `GET /api/admin/members` — Tous les membres (bureau only, normalisé pour FR/EN schémas)
+- `GET /api/admin/registrations` — Toutes les inscriptions (bureau only, jointes avec events)
+- `GET /api/admin/pending` — Articles en attente (placeholder)
+- `GET /api/admin/articles` — Tous les articles (placeholder)
+
+### Bug de timing résolu
+
+**Problème initial** : Les pages `connexion.html`, `espace-membre.html`, `espace-bureau.html` appelaient `JokariAPI.getSession()` au parsing du script, mais `/auth/me` n'avait pas encore répondu → `null` → redirection vers `/connexion.html` même si l'utilisateur était connecté.
+
+**Solution** : `api.js` expose `JokariAPI.sessionReady` (promesse du chargement initial). Toutes les pages d'auth font `await sessionReady` dans `DOMContentLoaded` avant de prendre une décision d'affichage.
 
 ---
 
-## 🔧 Commandes utiles
+## 📨 Phase 0bis — SendGrid email (TERMINÉ ✅)
 
-```bash
-# SSL status
-gcloud compute ssl-certificates describe jokari-ssl --global --project=jokari --format="value(managed.status,managed.domainStatus)"
+### Configuration
+- Domain Authentication : ✅ Verified (`em8175`, `url7025`, User ID `107218164`)
+- Single Sender `contact@jokari.ch` : ✅ Verified
+- SPF combiné dans TXT @ : `v=spf1 include:spf.improvmx.com include:sendgrid.net ~all`
+- DKIM : ✅ aligné
+- DMARC : `v=DMARC1; p=none;`
+- Score mail-tester : 8/10 (perte uniquement à cause de l'IP partagée trial SendGrid)
 
-# Logs Cloud Run
-gcloud run services logs read jokari-website --region=europe-west6 --project=jokari
+### Mailer (7 templates)
 
-# Déployer
-cd C:\Users\gmoul\jokari-site
-git add . && git commit -m "message" && git push origin main
+Tous dans `api/mailer.js`, tous bilingues FR :
 
-# Forwarding rules
-gcloud compute forwarding-rules list --global --project=jokari
+1. `sendMagicLink(email, link, firstName)` — **AVEC `disableTracking: true`** pour bypass le Link Branding
+2. `sendMemberConfirmation(member)` — Adhésion confirmée
+3. `sendMemberAdminNotification(member)` — Notif bureau d'une nouvelle adhésion
+4. `sendRegistrationConfirmation(reg, eventTitle)` — Inscription tournoi confirmée
+5. `sendRegistrationAdminNotification(reg, eventTitle)` — Notif bureau d'une inscription
+6. `sendNewsletterConfirmation(email)` — Bienvenue newsletter
+7. `sendContactAcknowledgement(msg)` + `sendContactAdminNotification(msg)` — Formulaire contact
 
-# Vérifier DNS
-nslookup -type=MX jokari.ch 8.8.8.8
-nslookup -type=TXT jokari.ch 8.8.8.8
-nslookup -type=CNAME em8175.jokari.ch 8.8.8.8
+### ImprovMX forwarding
+
+4 alias actifs (tous → `gmoulyaigrot@gmail.com`) :
+- `gregoire@jokari.ch`
+- `christine@jokari.ch`
+- `admin@jokari.ch`
+- `contact@jokari.ch`
+
+MX records GoDaddy : `mx1.improvmx.com` (10), `mx2.improvmx.com` (20).
+
+---
+
+## 🗄️ Firestore — État actuel
+
+### Collection `members/` (2 docs)
+
+**Schéma actuel mixte** (ancien FR + nouveau EN) :
+- Grégoire : `prenom`, `nom`, `email`, `telephone`, `adresse`, `npa`, `ville`, `date_de_naissance`, `date_adhesion`, `type_membre: honoraire`, `statut: actif`, `role: président`, `accesslevel: admin`, `cotisation_payee: true`
+- Christine : pareil avec `role: vice-présidente`
+
+**Le backend `normalizeMember()` gère les 2 schémas** (`prenom`/`firstName`, etc.).
+
+### Collection `events/` (3 docs)
+
+**Schéma FR actuel** (titres en français) :
+- "Essai - Open-Jura" → "Essai - Open de Chapois" (date `2026-06-06`)
+- "Essai - Open-ZH" → "Essai - Open de La Baule" (date `2026-08-01`)
+- "A venir - Open Zurich" (date `"A determiner"` — non parseable)
+
+**Champs Firestore** : `titre`, `titreDe`, `date`, `dateFr`, `dateDe`, `heure`, `prix`, `lieu`, `placestotal`, `placesrestantes`, `statut`, `descFr`, `descDe`, `image`, `type`.
+
+**Le backend `normalizeEventOutput()` mappe FR→EN automatiquement** vers : `title`, `titleDe`, `price`, `time`, `location`, `spotsTotal`, `spotsLeft`, `status`, etc.
+
+### Collection `registrations/`
+
+Créée automatiquement par les tests. Schéma stocké depuis la dernière mise à jour de `server.js` :
+- `memberName`, `memberEmail`, `phone`
+- `eventId`, `eventTitle`, `eventDate`
+- `participants`, `amount`, `status`
+- `friendName`, `friendEmail` (optionnel)
+- `createdAt`
+
+**Endpoint admin** enrichit les anciennes inscriptions via jointure avec `events`.
+
+### Collections à créer
+
+- `articles/` (lifestyle — livres, films, musique, voyages, cuisine, forum)
+- `news/` (actualités du club)
+- `newsletter/` (créée auto par tests)
+- `contact_messages/` (créée auto par tests)
+
+---
+
+## 🎨 Phase A — Contenu et images (PARTIELLEMENT FAITE)
+
+### ✅ Fait dans cette session
+
+**Modifications textuelles** :
+- `index.html` : manifeste "trois balles" → "1 balle" (FR+DE)
+- `index.html` : paragraphe Horgen → "(ou pas) sur les pelouses de Horgen ou la plage de la Baule, ... rigoureusement physique"
+- `jokari.html` : sous-titre "1 balle, 1 élastique, un socle, 2 joueurs élégants et soixante-quinze ans d'histoire"
+- `contact.html` : adresse postale sans "Seestrasse 142"
+- `main.js` : footer adresse sans "Seestrasse"
+
+**Système d'images** :
+- Helper `window.img({src, alt, fallback})` ajouté dans `main.js` — affiche image OU fallback automatique sur `ph()` rayé si 404
+- `index.html` : hero + 3 about utilisent vraies images de `images/hero/` et `images/jokari/`
+- `jokari.html` : hero archive + 6/8 cases de galerie utilisent vraies images
+- `boutique.html` : t-shirt utilise `images/boutique/Jokari.PNG`
+- `evenements.html` + `index.html` : events utilisent `ev.image` si présent dans Firestore (fallback sinon)
+
+### Inventaire des images disponibles
+
+```
+src/images/hero/        Jokari Zurich.png, Captureeiffel.PNG
+src/images/jokari/      Jokari History.PNG, Jokari.PNG, Captureaaaa.PNG, Captureffff.PNG,
+                        e783d11e810aecb89f140ce5270236b3.jpg,
+                        int-hulot-plage-ok-.jpg,
+                        man-taking-basque-paddle-ball-game-jokari-21372762.jpg.webp
+src/images/boutique/    Jokari.PNG
+src/images/members/     christine.PNG (pas encore utilisée)
+src/images/events/      VIDE
+src/images/articles/    VIDE
+src/images/news/        VIDE
 ```
 
-### Test API & SendGrid
+**Convention recommandée** : noms lowercase, sans espace (sensitive à la casse sur Linux/Cloud Run).
+
+### Comment ajouter/modifier une image
+
+**Page statique (accueil, jokari, boutique)** :
+1. Dépose l'image dans le bon sous-dossier de `src/images/`
+2. Ouvre le HTML correspondant, trouve la ligne avec `img({src: "..."})` et modifie le chemin
+3. Push
+
+**Image d'événement** :
+1. Dépose dans `src/images/events/`
+2. Va dans [Firestore Console](https://console.cloud.google.com/firestore?project=jokari) → `events` → doc → ajoute/modifie champ `image: "images/events/mon-image.jpg"`
+3. Recharger la page
+
+**Le fallback `ph()` rayé apparaît automatiquement** si l'image n'existe pas.
+
+---
+
+## 📦 Action items prioritaires (TODO)
+
+### Sécurité 🔴 URGENT
+- [ ] **Régénérer la clé SendGrid** qui a été visible dans une capture PowerShell. Procédure :
+  1. SendGrid → Settings → API Keys → Create `jokari-cloudrun-v2`
+  2. GitHub → Settings → Secrets → mettre à jour `SENDGRID_API_KEY`
+  3. Push n'importe quoi sur main pour déclencher un redéploiement
+
+### Espace bureau (admin)
+- [ ] Bouton "Valider l'adhésion" dans `espace-bureau.html` pour faire passer un membre `pending` → `actif` en 1 clic (avec endpoint backend `POST /api/admin/members/:id/activate`)
+- [ ] Pouvoir éditer un événement depuis l'admin (titre, date, prix, places, image)
+- [ ] Pouvoir créer un nouvel événement
+
+### Contenu
+- [ ] Ajouter de vraies images d'événements dans `src/images/events/` + mettre à jour le champ `image` dans Firestore
+- [ ] Créer les collections Firestore vides : `articles/`, `news/`
+- [ ] Petite incohérence : `connexion.html` dit "valide trente minutes" mais `MAGIC_TTL = "15m"` dans `auth.js`. Aligner (soit passer à 30m, soit corriger le texte).
+- [ ] Image du tote bag (`prod-tote` dans boutique.html)
+- [ ] Compléter la galerie du jokari (cases 7 et 8 sont des placeholders)
+
+### Améliorations possibles
+- [ ] SendGrid Pro ($90/mois) pour IP dédiée et meilleur score mail-tester
+- [ ] Renommer les images en kebab-case lowercase (`jokari-zurich.png`)
+- [ ] Phase C : éditeur d'articles côté membre
+
+---
+
+## 🐛 Connaissances acquises (pièges à éviter)
+
+### PowerShell sur Windows
+- `PSSecurityException` sur `gcloud`/`npm`/`curl` → utiliser `gcloud.cmd`, `npm.cmd`, `curl.exe`
+- OU : `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser` en admin
+
+### Cloud Run
+- `--set-env-vars` **REMPLACE toute la liste** d'env vars (piège). Utiliser `--env-vars-file` + YAML (méthode actuelle dans `deploy.yml`).
+- `min-instances=0` → cold start de 5-10s sur première requête après période d'inactivité (502 Bad Gateway temporaire, normal).
+- Variables avec virgules : utiliser séparateur `;` (réservé Cloud Run).
+
+### SendGrid
+- **Click tracking** ajoute par défaut une redirection via `url7025.jokari.ch` (Link Branding) qui n'a pas de cert SSL → erreur "Connexion non privée" sur Chrome.
+- Solution : `disableTracking: true` dans `trackingSettings` pour les emails type magic links où il faut un lien direct.
+
+### Cookies HttpOnly secure
+- Frontend : `credentials: "include"` dans tous les `fetch()`
+- Backend CORS : `credentials: true` + `origin` whitelist (pas wildcard `*`)
+- SameSite : `lax` pour permettre les redirections cross-tab depuis Gmail
+
+### Sensitivité à la casse
+- Windows : `Jokari Zurich.png` = `jokari zurich.png`
+- Linux/Cloud Run : `Jokari Zurich.png` ≠ `jokari zurich.png`
+- → Toujours respecter la casse exacte dans le code
+
+### Frontend timing
+- `JokariAPI.getSession()` est **synchrone** (cache mémoire) → peut retourner `null` si appelé trop tôt
+- Pour les pages dépendant de la session : **toujours** `await window.JokariAPI.sessionReady` avant de décider
+
+---
+
+## 🚀 Comment reprendre une session
+
+Lorsque tu (ou une nouvelle session Claude) reprend le projet :
+
+1. **Lire ce `CONTEXT.md`** intégralement
+2. **Cloner le repo** : `git clone https://github.com/Tigergreg/Jokari.git`
+3. **Vérifier l'état** :
+   ```powershell
+   curl.exe https://jokari.ch/api/health
+   ```
+   → Attendu : `{"ok":true,...,"mailer":true,"auth":true}`
+4. **Vérifier qu'on peut se connecter** :
+   - `https://jokari.ch/connexion.html`
+   - Magic link à `gmoulyaigrot@gmail.com`
+   - Atterrir sur `/espace-membre.html` puis cliquer "Espace bureau"
+5. **Continuer depuis les Action Items** ci-dessus
+
+### Commandes utiles
+
 ```powershell
-# Health check (vérifie aussi que mailer est ON)
+# Logs Cloud Run récents
+gcloud.cmd run services logs read jokari-website --region=europe-west6 --project=jokari --limit=30
+
+# Vérifier déploiement après push
 curl.exe https://jokari.ch/api/health
-# Attendu: {"ok":true,"ts":...,"mailer":true}
 
-# Variables d'env Cloud Run (doit montrer les 6)
-gcloud.cmd run services describe jokari-website --region=europe-west6 --project=jokari --format="value(spec.template.spec.containers[0].env[].name)"
+# Voir les events servis par l'API
+curl.exe -s https://jokari.ch/api/events | ConvertFrom-Json | ConvertTo-Json -Depth 5
 
-# Logs live (utile en cas de souci après push)
-gcloud.cmd run services logs tail jokari-website --region=europe-west6 --project=jokari
-```
+# Lister les images locales
+Get-ChildItem -Recurse C:\Users\gmoul\jokari-site\src\images | Select-Object FullName, Length
 
-### Test envoi SendGrid (PowerShell)
-```powershell
-$apiKey = "SG.xxxxxxxxx"
-$body = @{
-  personalizations = @(@{ to = @(@{ email = "destinataire@example.com" }) })
-  from = @{ email = "contact@jokari.ch"; name = "Jokari Club Zurich" }
-  reply_to = @{ email = "contact@jokari.ch"; name = "Jokari Club Zurich" }
-  subject = "Sujet du mail"
-  content = @(@{ type = "text/plain"; value = "Corps du mail" })
-} | ConvertTo-Json -Depth 5
-
-Invoke-RestMethod -Uri "https://api.sendgrid.com/v3/mail/send" `
-  -Method Post `
-  -Headers @{ "Authorization" = "Bearer $apiKey"; "Content-Type" = "application/json" } `
-  -Body $body
+# Force un redéploiement (commit vide)
+git commit --allow-empty -m "redeploy" ; git push origin main
 ```
 
 ---
 
-## 📝 Notes importantes
+## 📅 Historique des sessions
 
-- ⚠️ Terminal : utiliser **PowerShell** ou **Google Cloud SDK Shell**
-- ⚠️ Si PowerShell bloque les `.ps1` (PSSecurityException), utiliser `gcloud.cmd`, `npm.cmd`, `curl.exe`, OU lancer `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser` (en admin)
-- ⚠️ Ne jamais committer `jokari-gcp-key.json` ni les clés SendGrid
-- ⚠️ Mailer **fire-and-forget** : si SendGrid plante, le formulaire répond `ok: true` quand même (UX OK, mais à monitorer)
-- ⚠️ `--set-env-vars` Cloud Run REMPLACE toute la liste : toujours utiliser le workflow GitHub Actions pour persister les variables
-- ℹ️ Magic link email prêt (clé `Magic Link` dédiée, mailer.js réutilisable)
-- ⚠️ Load Balancer coûte ~18 CHF/mois
-- ℹ️ Magic link email fonctionne (Domain Auth verified)
-- ℹ️ Google Search Console vérifié pour `jokari.ch`
-- ℹ️ Forwarding ImprovMX = forwarding pur, pas de mailbox réelle
-- ℹ️ Pour tester forwarding : utiliser une adresse externe (pas un destinataire du forward) — Gmail détecte les self-loops
+### Session 1 (avril/mai 2026)
+- Statuts bilingues FR/DE, procès-verbal de constitution
+- Setup GCP, Firestore, Cloud Run, GitHub
+- Premier déploiement Cloud Run
+- Configuration domaine GoDaddy + SSL
 
----
-
-## 📋 Documents légaux
-- PV de constitution + Statuts bilingues FR/DE (29 avril 2026)
-- Siège : Horgen – Plattenstrasse 8, 8810 Horgen (ZH)
-- Art. 60 ss CC suisse
+### Session 2 (4 juin 2026 — celle-ci)
+- SendGrid Domain Authentication (refait depuis zéro)
+- ImprovMX forwarding (4 alias)
+- SSL `www.jokari.ch` résolu
+- Phase 0ter : mailer code + 7 templates
+- **Phase B complète** : magic link auth + cookies httpOnly + endpoints + middlewares
+- Adaptation au frontend existant (avancé : 24 endpoints, 4 pages auth)
+- Fix bug de timing (`sessionReady` promise)
+- Normalisation members (ancien FR + nouveau EN)
+- Normalisation events (FR→EN + dates auto)
+- Enrichissement registrations (jointure events)
+- Phase A partielle : contenu textuel + système d'images avec `img()`
 
 ---
 
 ## 🔗 Liens utiles
 
-| Service | URL |
-|---|---|
-| GCP Console | https://console.cloud.google.com/home/dashboard?project=jokari |
-| SendGrid | https://app.sendgrid.com |
-| ImprovMX | https://app.improvmx.com |
-| GoDaddy DNS | https://dcc.godaddy.com/manage/jokari.ch/dns |
-| GitHub Repo | https://github.com/Tigergreg/Jokari |
-| Site live | https://jokari.ch |
-| Mail tester | https://www.mail-tester.com |
+- **Site** : https://jokari.ch
+- **Espace bureau** : https://jokari.ch/espace-bureau.html
+- **Repo GitHub** : https://github.com/Tigergreg/Jokari
+- **CI/CD Actions** : https://github.com/Tigergreg/Jokari/actions
+- **Firestore Console** : https://console.cloud.google.com/firestore?project=jokari
+- **Cloud Run** : https://console.cloud.google.com/run/detail/europe-west6/jokari-website?project=jokari
+- **SendGrid** : https://app.sendgrid.com
+- **ImprovMX** : https://improvmx.com
+- **GoDaddy DNS** : https://dcc.godaddy.com/manage/jokari.ch/dns
 
 ---
 
-*Dernière mise à jour : 4 juin 2026 — Infrastructure + Email complets. 4 formulaires envoient des emails (membres, registrations, newsletter, contact). Pipeline CI/CD étanche. Prêt pour Phase A (contenu + tests des autres formulaires).*
+*Document maintenu manuellement à chaque fin de session importante. Si tu modifies l'archi ou résous un bug important, mets à jour ce fichier avant de pousser.*
