@@ -108,4 +108,60 @@ async function saveDocument(collection, data) {
   return { id: ref.id };
 }
 
-module.exports = { db, listEvents, getEvent, listNews, getNewsItem, listArticles, getArticle, saveDocument };
+// ---- Members lookup for auth ----
+// Cherche un membre par email (insensible à la casse).
+// Gère les 2 schémas existants : ancien (prenom/nom/statut) + nouveau (firstName/lastName/status).
+async function getMemberByEmail(email) {
+  if (!email) return null;
+  const normalized = email.toLowerCase().trim();
+  try {
+    const snap = await db.collection("members")
+      .where("email", "==", normalized)
+      .limit(1)
+      .get();
+    if (!snap.empty) {
+      const d = snap.docs[0];
+      return normalizeMember({ id: d.id, ...d.data() });
+    }
+    // Fallback: certains docs ont peut-être l'email en casse mixte → on scanne (lent mais OK pour <100 docs)
+    const all = await db.collection("members").get();
+    for (const d of all.docs) {
+      const data = d.data();
+      if ((data.email || "").toLowerCase().trim() === normalized) {
+        return normalizeMember({ id: d.id, ...data });
+      }
+    }
+    return null;
+  } catch (err) {
+    console.warn("[firestore] getMemberByEmail failed:", err.message);
+    return null;
+  }
+}
+
+// Normalise les 2 schémas de membres pour exposer un objet cohérent à l'auth.
+function normalizeMember(raw) {
+  if (!raw) return null;
+  return {
+    id: raw.id,
+    email: raw.email,
+    firstName: raw.firstName || raw.prenom || null,
+    lastName: raw.lastName || raw.nom || null,
+    status: raw.status || raw.statut || null,
+    memberType: raw.memberType || raw.type_membre || null,
+    role: raw.role || null,
+    accesslevel: raw.accesslevel || raw.accessLevel || "member",
+    raw,
+  };
+}
+
+module.exports = {
+  db,
+  listEvents,
+  getEvent,
+  listNews,
+  getNewsItem,
+  listArticles,
+  getArticle,
+  saveDocument,
+  getMemberByEmail,
+};

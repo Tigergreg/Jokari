@@ -52,6 +52,7 @@ jobs:
           JOKARI_FROM_EMAIL: ${{ secrets.JOKARI_FROM_EMAIL }}
           JOKARI_FROM_NAME: ${{ secrets.JOKARI_FROM_NAME }}
           JOKARI_ADMIN_EMAILS: ${{ secrets.JOKARI_ADMIN_EMAILS }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           cat > env-vars.yaml <<EOF
           GCP_PROJECT_ID: "${{ secrets.GCP_PROJECT_ID }}"
@@ -60,6 +61,8 @@ jobs:
           JOKARI_FROM_EMAIL: "${JOKARI_FROM_EMAIL}"
           JOKARI_FROM_NAME: "${JOKARI_FROM_NAME}"
           JOKARI_ADMIN_EMAILS: "${JOKARI_ADMIN_EMAILS}"
+          JOKARI_PUBLIC_URL: "https://jokari.ch"
+          JWT_SECRET: "${JWT_SECRET}"
           EOF
           echo "env-vars.yaml created with $(grep -c ':' env-vars.yaml) variables"
 

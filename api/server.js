@@ -1,8 +1,13 @@
 // api/server.js — Express API for jokari.ch
 const express = require("express");
 const cors = require("cors");
-const { listEvents, getEvent, listNews, getNewsItem, listArticles, getArticle, saveDocument } = require("./firestore");
+const cookieParser = require("cookie-parser");
+const {
+  listEvents, getEvent, listNews, getNewsItem,
+  listArticles, getArticle, saveDocument, getMemberByEmail,
+} = require("./firestore");
 const mailer = require("./mailer");
+const auth = require("./auth");
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "3000", 10);
@@ -20,9 +25,11 @@ app.use(cors({
     return cb(null, false);
   },
   methods: ["GET", "POST", "OPTIONS"],
+  credentials: true, // pour les cookies de session
 }));
 
 app.use(express.json({ limit: "100kb" }));
+app.use(cookieParser());
 
 // ---- Validation helpers ----
 function requireFields(body, fields) {
@@ -43,9 +50,110 @@ function fireAndForget(promise, label) {
 }
 
 // ---- Health ----
-app.get("/api/health", (req, res) => res.json({ ok: true, ts: Date.now(), mailer: mailer.isEnabled() }));
+app.get("/api/health", (req, res) => res.json({
+  ok: true,
+  ts: Date.now(),
+  mailer: mailer.isEnabled(),
+  auth: auth.isEnabled(),
+}));
 
-// ---- GET /api/events ----
+// ============================================================
+// AUTH — Magic link login
+// ============================================================
+
+// ---- POST /api/auth/request ----
+// Demande un magic link. Réponse identique qu'on trouve ou non l'email
+// (pour ne pas révéler qui est membre).
+app.post("/api/auth/request", async (req, res) => {
+  try {
+    const b = req.body || {};
+    if (!isEmail(b.email)) throw Object.assign(new Error("Email invalide"), { status: 400 });
+    if (!auth.isEnabled()) throw Object.assign(new Error("Auth indisponible"), { status: 503 });
+
+    const member = await getMemberByEmail(b.email);
+    const isActive = member && (member.status === "actif");
+
+    if (isActive) {
+      const token = auth.signMagicToken(member.email);
+      const link = auth.buildMagicLink(token);
+      fireAndForget(
+        mailer.sendMagicLink(member.email, link, member.firstName),
+        "magic-link"
+      );
+      console.log(`[auth] magic link sent to ${member.email}`);
+    } else if (member) {
+      console.log(`[auth] requested for ${member.email} but status=${member.status} (not active)`);
+    } else {
+      console.log(`[auth] requested for unknown email ${b.email}`);
+    }
+
+    // Réponse identique dans tous les cas (anti-énumération)
+    res.json({ ok: true, message: "Si vous êtes membre du club, un lien de connexion vient de vous être envoyé." });
+  } catch (err) {
+    console.error("[auth/request]", err);
+    res.status(err.status || 500).json({ ok: false, error: err.message });
+  }
+});
+
+// ---- POST /api/auth/verify ----
+// Vérifie le token magic link, crée la session.
+app.post("/api/auth/verify", async (req, res) => {
+  try {
+    const b = req.body || {};
+    if (!b.token) throw Object.assign(new Error("Token manquant"), { status: 400 });
+    if (!auth.isEnabled()) throw Object.assign(new Error("Auth indisponible"), { status: 503 });
+
+    let payload;
+    try {
+      payload = auth.verifyToken(b.token, "magic");
+    } catch (err) {
+      throw Object.assign(new Error("Lien invalide ou expiré"), { status: 401 });
+    }
+
+    const member = await getMemberByEmail(payload.email);
+    if (!member) throw Object.assign(new Error("Compte introuvable"), { status: 404 });
+    if (member.status !== "actif") {
+      throw Object.assign(new Error("Compte non actif. Le bureau doit valider votre adhésion."), { status: 403 });
+    }
+
+    const sessionToken = auth.signSessionToken(member);
+    auth.setSessionCookie(res, sessionToken);
+
+    res.json({
+      ok: true,
+      user: {
+        id: member.id,
+        email: member.email,
+        firstName: member.firstName,
+        lastName: member.lastName,
+        role: member.role,
+        accesslevel: member.accesslevel,
+      },
+    });
+  } catch (err) {
+    console.error("[auth/verify]", err);
+    res.status(err.status || 500).json({ ok: false, error: err.message });
+  }
+});
+
+// ---- GET /api/auth/me ----
+// Retourne l'utilisateur courant (ou 401 si non connecté).
+app.get("/api/auth/me", (req, res) => {
+  const user = auth.readSession(req);
+  if (!user) return res.status(401).json({ ok: false, error: "Not authenticated" });
+  res.json({ ok: true, user });
+});
+
+// ---- POST /api/auth/logout ----
+app.post("/api/auth/logout", (req, res) => {
+  auth.clearSessionCookie(res);
+  res.json({ ok: true });
+});
+
+// ============================================================
+// PUBLIC GET endpoints
+// ============================================================
+
 app.get("/api/events", async (req, res) => {
   try {
     const events = await listEvents();
@@ -56,25 +164,21 @@ app.get("/api/events", async (req, res) => {
   }
 });
 
-// ---- GET /api/events/:id ----
 app.get("/api/events/:id", async (req, res) => {
   try { const event = await getEvent(req.params.id); res.json({ ok: true, event }); }
   catch (err) { res.status(500).json({ ok: false, error: err.message }); }
 });
 
-// ---- GET /api/news ----
 app.get("/api/news", async (req, res) => {
   try { const news = await listNews(); res.json({ ok: true, news }); }
   catch (err) { res.status(500).json({ ok: false, error: err.message }); }
 });
 
-// ---- GET /api/news/:id ----
 app.get("/api/news/:id", async (req, res) => {
   try { const item = await getNewsItem(req.params.id); res.json({ ok: true, item }); }
   catch (err) { res.status(500).json({ ok: false, error: err.message }); }
 });
 
-// ---- GET /api/articles ----
 app.get("/api/articles", async (req, res) => {
   try {
     const articles = await listArticles({
@@ -85,13 +189,15 @@ app.get("/api/articles", async (req, res) => {
   } catch (err) { res.status(500).json({ ok: false, error: err.message }); }
 });
 
-// ---- GET /api/article/:id ----
 app.get("/api/article/:id", async (req, res) => {
   try { const article = await getArticle(req.params.id); res.json({ ok: true, article }); }
   catch (err) { res.status(500).json({ ok: false, error: err.message }); }
 });
 
-// ---- POST /api/members ----
+// ============================================================
+// PUBLIC POST endpoints
+// ============================================================
+
 app.post("/api/members", async (req, res) => {
   try {
     const b = req.body || {};
@@ -114,17 +220,16 @@ app.post("/api/members", async (req, res) => {
       acceptStatuts: !!b.acceptStatuts,
       acceptNewsletter: !!b.acceptNewsletter,
       status: "pending",
+      accesslevel: "member",
     };
 
     const out = await saveDocument("members", memberData);
     const memberWithId = { ...memberData, id: out.id };
 
-    // Optional: enrol on newsletter too
     if (b.acceptNewsletter && isEmail(b.email)) {
       await saveDocument("newsletter", { email: b.email, source: "member-form" }).catch(() => {});
     }
 
-    // Emails — fire-and-forget pour ne jamais bloquer la réponse
     fireAndForget(mailer.sendMemberConfirmation(memberWithId), "member-confirmation");
     fireAndForget(mailer.sendMemberAdminNotification(memberWithId), "member-admin-notification");
 
@@ -135,7 +240,6 @@ app.post("/api/members", async (req, res) => {
   }
 });
 
-// ---- POST /api/registrations ----
 app.post("/api/registrations", async (req, res) => {
   try {
     const b = req.body || {};
@@ -154,7 +258,6 @@ app.post("/api/registrations", async (req, res) => {
     const out = await saveDocument("registrations", regData);
     const regWithId = { ...regData, id: out.id };
 
-    // Tente de récupérer le titre de l'événement pour un mail plus parlant
     let eventTitle = b.eventId;
     try {
       const ev = await getEvent(b.eventId);
@@ -171,15 +274,12 @@ app.post("/api/registrations", async (req, res) => {
   }
 });
 
-// ---- POST /api/newsletter ----
 app.post("/api/newsletter", async (req, res) => {
   try {
     const b = req.body || {};
     if (!isEmail(b.email)) throw Object.assign(new Error("Invalid email"), { status: 400 });
     const out = await saveDocument("newsletter", { email: b.email, source: b.source || "site" });
-
     fireAndForget(mailer.sendNewsletterConfirmation(b.email), "newsletter-confirmation");
-
     res.json({ ok: true, id: out.id });
   } catch (err) {
     console.error(err);
@@ -187,7 +287,6 @@ app.post("/api/newsletter", async (req, res) => {
   }
 });
 
-// ---- POST /api/contact (bonus — used by contact form) ----
 app.post("/api/contact", async (req, res) => {
   try {
     const b = req.body || {};
@@ -197,10 +296,8 @@ app.post("/api/contact", async (req, res) => {
       name: b.name, email: b.email, subject: b.subject, message: b.message,
     };
     const out = await saveDocument("contact_messages", msgData);
-
     fireAndForget(mailer.sendContactAcknowledgement(msgData), "contact-acknowledgement");
     fireAndForget(mailer.sendContactAdminNotification(msgData), "contact-admin-notification");
-
     res.json({ ok: true, id: out.id });
   } catch (err) {
     console.error(err);
@@ -208,8 +305,29 @@ app.post("/api/contact", async (req, res) => {
   }
 });
 
+// ============================================================
+// PROTECTED endpoints — exemples (à enrichir plus tard)
+// ============================================================
+
+// Liste des membres (admin only) — utile pour le futur dashboard
+app.get("/api/admin/members", auth.requireAdmin, async (req, res) => {
+  try {
+    const { db } = require("./firestore");
+    const snap = await db.collection("members").get();
+    const members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ ok: true, members });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ============================================================
+// 404 + start
+// ============================================================
+
 app.use((req, res) => res.status(404).json({ ok: false, error: "Not found" }));
 
 app.listen(PORT, () => {
-  console.log(`[jokari-api] listening on :${PORT} — mailer ${mailer.isEnabled() ? "ON" : "OFF"}`);
+  console.log(`[jokari-api] listening on :${PORT} — mailer ${mailer.isEnabled() ? "ON" : "OFF"} — auth ${auth.isEnabled() ? "ON" : "OFF"}`);
 });

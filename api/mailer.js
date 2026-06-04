@@ -1,5 +1,5 @@
 // api/mailer.js — SendGrid notifications for jokari.ch
-// Envoie des emails transactionnels (confirmations utilisateur + notifications bureau)
+// Envoie des emails transactionnels (confirmations utilisateur + notifications bureau + magic links)
 
 const sgMail = require("@sendgrid/mail");
 
@@ -52,6 +52,51 @@ async function send({ to, subject, text, html, replyTo }) {
 // ====================================================================
 // Templates métier
 // ====================================================================
+
+// ---- Magic link (connexion espace membre) ----
+async function sendMagicLink(email, link, firstName) {
+  const greeting = firstName ? `Bonjour ${firstName},` : "Bonjour,";
+  const subject = "Votre lien de connexion au Jokari Club Zürich";
+  const text =
+`${greeting}
+
+Voici votre lien de connexion à votre espace Jokari Club Zürich :
+
+${link}
+
+Ce lien est valable 15 minutes et ne fonctionne qu'une fois.
+
+Si vous n'avez pas demandé cette connexion, vous pouvez ignorer ce message en toute sécurité.
+
+À très bientôt sur les courts !
+
+Le bureau du Jokari Club Zürich
+contact@jokari.ch | www.jokari.ch`;
+
+  const html =
+`<div style="font-family: -apple-system, Segoe UI, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; color: #222;">
+  <p>${greeting}</p>
+  <p>Voici votre lien de connexion à votre espace <strong>Jokari Club Zürich</strong> :</p>
+  <p style="text-align: center; margin: 32px 0;">
+    <a href="${link}" style="display: inline-block; background: #c8312a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold;">Se connecter</a>
+  </p>
+  <p style="font-size: 13px; color: #666;">
+    Ou copiez-collez ce lien dans votre navigateur :<br>
+    <a href="${link}" style="color: #c8312a; word-break: break-all;">${link}</a>
+  </p>
+  <p style="font-size: 13px; color: #666;">
+    Ce lien est valable <strong>15 minutes</strong> et ne fonctionne qu'une fois.<br>
+    Si vous n'avez pas demandé cette connexion, vous pouvez ignorer ce message.
+  </p>
+  <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+  <p style="font-size: 13px; color: #888;">
+    Le bureau du Jokari Club Zürich<br>
+    <a href="mailto:contact@jokari.ch" style="color: #c8312a;">contact@jokari.ch</a> | <a href="https://jokari.ch" style="color: #c8312a;">www.jokari.ch</a>
+  </p>
+</div>`;
+
+  return send({ to: email, subject, text, html });
+}
 
 // ---- Adhésion ----
 async function sendMemberConfirmation(member) {
@@ -198,6 +243,8 @@ ${msg.message}
 }
 
 module.exports = {
+  // auth
+  sendMagicLink,
   // adhésion
   sendMemberConfirmation,
   sendMemberAdminNotification,
