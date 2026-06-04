@@ -1,5 +1,6 @@
 // api/auth.js — Magic link auth for jokari.ch
-// Génère et vérifie des JWT pour magic links (15 min) et sessions (7 jours)
+// Génère et vérifie des JWT pour magic links (15 min) et sessions (7 jours).
+// Aligné sur le frontend existant : utilise role="bureau" pour les admins.
 
 const jwt = require("jsonwebtoken");
 
@@ -22,6 +23,15 @@ if (!JWT_SECRET) {
   console.log("[auth] enabled — publicUrl=" + PUBLIC_URL);
 }
 
+// ---- Mapping accesslevel Firestore → role frontend ----
+// Le frontend attend role "bureau" pour les admins (page admin) et "member" pour les autres.
+function deriveFrontendRole(member) {
+  if (!member) return "member";
+  const al = (member.accesslevel || "").toLowerCase();
+  if (al === "admin" || al === "bureau") return "bureau";
+  return "member";
+}
+
 // ---- Génération de tokens ----
 
 function signMagicToken(email) {
@@ -35,14 +45,17 @@ function signMagicToken(email) {
 
 function signSessionToken(member) {
   if (!JWT_SECRET) throw new Error("JWT_SECRET missing");
+  const role = deriveFrontendRole(member);
   return jwt.sign(
     {
+      memberId: member.id,
       id: member.id,
       email: (member.email || "").toLowerCase(),
-      accesslevel: member.accesslevel || "member",
-      role: member.role || null,
       firstName: member.firstName || member.prenom || null,
       lastName: member.lastName || member.nom || null,
+      role: role,                                    // "bureau" | "member"
+      jobTitle: member.role || null,                  // titre métier (président, vice-présidente)
+      accesslevel: member.accesslevel || "member",    // raw Firestore field
       purpose: "session",
     },
     JWT_SECRET,
@@ -61,8 +74,9 @@ function verifyToken(token, expectedPurpose) {
   return payload;
 }
 
+// Le magic link pointe sur connexion.html (le frontend gère déjà le ?token=)
 function buildMagicLink(token) {
-  return `${PUBLIC_URL}/auth.html?token=${encodeURIComponent(token)}`;
+  return `${PUBLIC_URL}/connexion.html?token=${encodeURIComponent(token)}`;
 }
 
 // ---- Lecture de la session depuis cookie ----
@@ -82,19 +96,19 @@ function readSession(req) {
 function requireAuth(req, res, next) {
   const user = readSession(req);
   if (!user) {
-    return res.status(401).json({ ok: false, error: "Not authenticated" });
+    return res.status(401).json({ ok: false, error: "unauthenticated" });
   }
   req.user = user;
   next();
 }
 
-function requireAdmin(req, res, next) {
+function requireBureau(req, res, next) {
   const user = readSession(req);
   if (!user) {
-    return res.status(401).json({ ok: false, error: "Not authenticated" });
+    return res.status(401).json({ ok: false, error: "unauthenticated" });
   }
-  if (user.accesslevel !== "admin") {
-    return res.status(403).json({ ok: false, error: "Admin only" });
+  if (user.role !== "bureau") {
+    return res.status(403).json({ ok: false, error: "forbidden" });
   }
   req.user = user;
   next();
@@ -110,6 +124,20 @@ function clearSessionCookie(res) {
   res.clearCookie(COOKIE_NAME, { ...COOKIE_OPTS, maxAge: 0 });
 }
 
+// Formate l'objet "member" envoyé au frontend (champs cohérents avec ce que la session attend)
+function publicSession(payload) {
+  if (!payload) return null;
+  return {
+    memberId: payload.memberId || payload.id,
+    id: payload.memberId || payload.id,
+    email: payload.email,
+    firstName: payload.firstName,
+    lastName: payload.lastName,
+    role: payload.role,           // "bureau" | "member"
+    jobTitle: payload.jobTitle,   // titre métier optionnel
+  };
+}
+
 module.exports = {
   isEnabled: () => !!JWT_SECRET,
   signMagicToken,
@@ -118,8 +146,10 @@ module.exports = {
   buildMagicLink,
   readSession,
   requireAuth,
-  requireAdmin,
+  requireBureau,
   setSessionCookie,
   clearSessionCookie,
+  publicSession,
+  deriveFrontendRole,
   COOKIE_NAME,
 };

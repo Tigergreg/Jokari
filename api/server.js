@@ -3,7 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const {
-  listEvents, getEvent, listNews, getNewsItem,
+  db, listEvents, getEvent, listNews, getNewsItem,
   listArticles, getArticle, saveDocument, getMemberByEmail,
 } = require("./firestore");
 const mailer = require("./mailer");
@@ -12,7 +12,7 @@ const auth = require("./auth");
 const app = express();
 const PORT = parseInt(process.env.PORT || "3000", 10);
 
-// CORS — allow jokari.ch + dev origins
+// CORS — allow jokari.ch + dev origins (credentials true pour cookies)
 app.use(cors({
   origin: (origin, cb) => {
     const allow = [
@@ -25,7 +25,7 @@ app.use(cors({
     return cb(null, false);
   },
   methods: ["GET", "POST", "OPTIONS"],
-  credentials: true, // pour les cookies de session
+  credentials: true,
 }));
 
 app.use(express.json({ limit: "100kb" }));
@@ -44,7 +44,6 @@ function isEmail(s) {
   return typeof s === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 }
 
-// Helper: fire-and-forget — n'attend pas et ne fait jamais échouer la requête
 function fireAndForget(promise, label) {
   Promise.resolve(promise).catch(err => console.error(`[fire-and-forget] ${label}:`, err.message));
 }
@@ -61,14 +60,17 @@ app.get("/api/health", (req, res) => res.json({
 // AUTH — Magic link login
 // ============================================================
 
-// ---- POST /api/auth/request ----
-// Demande un magic link. Réponse identique qu'on trouve ou non l'email
-// (pour ne pas révéler qui est membre).
+// POST /api/auth/request — Demande un magic link
+// Réponse identique qu'on trouve ou non l'email (anti-énumération)
 app.post("/api/auth/request", async (req, res) => {
   try {
     const b = req.body || {};
-    if (!isEmail(b.email)) throw Object.assign(new Error("Email invalide"), { status: 400 });
-    if (!auth.isEnabled()) throw Object.assign(new Error("Auth indisponible"), { status: 503 });
+    if (!isEmail(b.email)) {
+      return res.status(400).json({ ok: false, error: "invalid-email" });
+    }
+    if (!auth.isEnabled()) {
+      return res.status(503).json({ ok: false, error: "auth-disabled" });
+    }
 
     const member = await getMemberByEmail(b.email);
     const isActive = member && (member.status === "actif");
@@ -80,54 +82,66 @@ app.post("/api/auth/request", async (req, res) => {
         mailer.sendMagicLink(member.email, link, member.firstName),
         "magic-link"
       );
-      console.log(`[auth] magic link sent to ${member.email}`);
+      console.log(`[auth] magic link sent to ${member.email} (role=${auth.deriveFrontendRole(member)})`);
     } else if (member) {
       console.log(`[auth] requested for ${member.email} but status=${member.status} (not active)`);
     } else {
       console.log(`[auth] requested for unknown email ${b.email}`);
     }
 
-    // Réponse identique dans tous les cas (anti-énumération)
-    res.json({ ok: true, message: "Si vous êtes membre du club, un lien de connexion vient de vous être envoyé." });
+    // Réponse identique dans tous les cas
+    res.json({ ok: true, sent: true });
   } catch (err) {
     console.error("[auth/request]", err);
     res.status(err.status || 500).json({ ok: false, error: err.message });
   }
 });
 
-// ---- POST /api/auth/verify ----
-// Vérifie le token magic link, crée la session.
-app.post("/api/auth/verify", async (req, res) => {
+// GET /api/auth/verify?token=xxx — Vérifie le magic link et crée la session
+// (Le frontend appelle cet endpoint en GET avec query param.)
+app.get("/api/auth/verify", async (req, res) => {
   try {
-    const b = req.body || {};
-    if (!b.token) throw Object.assign(new Error("Token manquant"), { status: 400 });
-    if (!auth.isEnabled()) throw Object.assign(new Error("Auth indisponible"), { status: 503 });
+    const token = req.query.token;
+    if (!token) {
+      return res.status(400).json({ ok: false, error: "invalid-token" });
+    }
+    if (!auth.isEnabled()) {
+      return res.status(503).json({ ok: false, error: "auth-disabled" });
+    }
 
     let payload;
     try {
-      payload = auth.verifyToken(b.token, "magic");
+      payload = auth.verifyToken(token, "magic");
     } catch (err) {
-      throw Object.assign(new Error("Lien invalide ou expiré"), { status: 401 });
+      // Distinguer expired vs invalid
+      if (err.name === "TokenExpiredError" || /expired/i.test(err.message)) {
+        return res.status(401).json({ ok: false, error: "expired" });
+      }
+      return res.status(401).json({ ok: false, error: "invalid-token" });
     }
 
     const member = await getMemberByEmail(payload.email);
-    if (!member) throw Object.assign(new Error("Compte introuvable"), { status: 404 });
+    if (!member) {
+      return res.status(404).json({ ok: false, error: "invalid-token" });
+    }
     if (member.status !== "actif") {
-      throw Object.assign(new Error("Compte non actif. Le bureau doit valider votre adhésion."), { status: 403 });
+      return res.status(403).json({ ok: false, error: "not-active" });
     }
 
     const sessionToken = auth.signSessionToken(member);
     auth.setSessionCookie(res, sessionToken);
 
+    // Frontend attend { ok, member }
     res.json({
       ok: true,
-      user: {
+      member: {
         id: member.id,
+        memberId: member.id,
         email: member.email,
         firstName: member.firstName,
         lastName: member.lastName,
-        role: member.role,
-        accesslevel: member.accesslevel,
+        role: auth.deriveFrontendRole(member),
+        jobTitle: member.role || null,
       },
     });
   } catch (err) {
@@ -136,15 +150,16 @@ app.post("/api/auth/verify", async (req, res) => {
   }
 });
 
-// ---- GET /api/auth/me ----
-// Retourne l'utilisateur courant (ou 401 si non connecté).
+// GET /api/auth/me — Retourne le membre courant (ou null si pas connecté)
 app.get("/api/auth/me", (req, res) => {
-  const user = auth.readSession(req);
-  if (!user) return res.status(401).json({ ok: false, error: "Not authenticated" });
-  res.json({ ok: true, user });
+  const payload = auth.readSession(req);
+  if (!payload) {
+    return res.json({ ok: true, member: null });
+  }
+  res.json({ ok: true, member: auth.publicSession(payload) });
 });
 
-// ---- POST /api/auth/logout ----
+// POST /api/auth/logout
 app.post("/api/auth/logout", (req, res) => {
   auth.clearSessionCookie(res);
   res.json({ ok: true });
@@ -306,13 +321,42 @@ app.post("/api/contact", async (req, res) => {
 });
 
 // ============================================================
-// PROTECTED endpoints — exemples (à enrichir plus tard)
+// PROTECTED endpoints — Espace membre
 // ============================================================
 
-// Liste des membres (admin only) — utile pour le futur dashboard
-app.get("/api/admin/members", auth.requireAdmin, async (req, res) => {
+// Inscriptions de l'utilisateur connecté
+app.get("/api/my-registrations", auth.requireAuth, async (req, res) => {
   try {
-    const { db } = require("./firestore");
+    const email = req.user.email;
+    const snap = await db.collection("registrations")
+      .where("email", "==", email)
+      .get();
+    const registrations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ ok: true, registrations });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Articles de l'utilisateur connecté (placeholder pour l'instant)
+app.get("/api/my-articles", auth.requireAuth, async (req, res) => {
+  try {
+    // Pour l'instant : pas de table articles côté Firestore avec authorId.
+    // À implémenter plus tard quand la collection articles sera structurée.
+    res.json({ ok: true, articles: [] });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ============================================================
+// ADMIN endpoints — Bureau only
+// ============================================================
+
+// Tous les membres (bureau only)
+app.get("/api/admin/members", auth.requireBureau, async (req, res) => {
+  try {
     const snap = await db.collection("members").get();
     const members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     res.json({ ok: true, members });
@@ -320,6 +364,28 @@ app.get("/api/admin/members", auth.requireAdmin, async (req, res) => {
     console.error(err);
     res.status(500).json({ ok: false, error: err.message });
   }
+});
+
+// Toutes les inscriptions (bureau only)
+app.get("/api/admin/registrations", auth.requireBureau, async (req, res) => {
+  try {
+    const snap = await db.collection("registrations").get();
+    const registrations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ ok: true, registrations });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Tous les articles en attente (bureau only) — placeholder
+app.get("/api/admin/pending", auth.requireBureau, async (req, res) => {
+  res.json({ ok: true, articles: [] });
+});
+
+// Tous les articles (bureau only) — placeholder
+app.get("/api/admin/articles", auth.requireBureau, async (req, res) => {
+  res.json({ ok: true, articles: [] });
 });
 
 // ============================================================
