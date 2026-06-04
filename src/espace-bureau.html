@@ -775,19 +775,48 @@
         const list = (res.ok && res.members) || [];
         $("badge-members").textContent = list.length;
         $("badge-members").classList.toggle("zero", !list.length);
-        $("members-list").innerHTML = list.map(m => `
+
+        const memberTypeLabels = {
+          actif:        { fr: "Membre actif",     de: "Aktivmitglied" },
+          honoraire:    { fr: "Membre honoraire", de: "Ehrenmitglied" },
+          bienfaiteur:  { fr: "Bienfaiteur",      de: "Gönner" },
+        };
+        const statusLabels = {
+          actif:   { fr: "Actif",         de: "Aktiv",         cls: "pill-paid" },
+          pending: { fr: "En attente",    de: "Ausstehend",    cls: "pill-pending" },
+          inactif: { fr: "Inactif",       de: "Inaktiv",       cls: "pill-completed" },
+        };
+        const fmtDate = (iso) => {
+          if (!iso) return "—";
+          const d = new Date(iso);
+          if (isNaN(d)) return "—";
+          return d.toLocaleDateString(lang() === "de" ? "de-CH" : "fr-CH", { year: "numeric", month: "long" });
+        };
+
+        $("members-list").innerHTML = list.map(m => {
+          const fullName = `${m.firstName || ""} ${m.lastName || ""}`.trim() || "(sans nom)";
+          // Sous-titre : jobTitle (président, vice-présidente) si présent, sinon type de membre
+          const subtitle = m.jobTitle
+            ? m.jobTitle.charAt(0).toUpperCase() + m.jobTitle.slice(1)
+            : ((memberTypeLabels[m.memberType] || { fr: m.memberType }).fr);
+          const st = statusLabels[m.status] || { fr: m.status, de: m.status, cls: "pill-pending" };
+          return `
           <tr>
             <td>
-              <div class="name">${escapeHtml(m.firstName)} ${escapeHtml(m.lastName)}</div>
-              <span class="sub">${escapeHtml(m.id)}</span>
+              <div class="name">${escapeHtml(fullName)}</div>
+              <span class="sub">${escapeHtml(subtitle)}</span>
             </td>
             <td><span class="role-tag ${m.role}">${m.role === "bureau"
               ? (lang() === "de" ? "Vorstand" : "Bureau")
               : (lang() === "de" ? "Mitglied" : "Membre")}</span></td>
-            <td>${new Date(m.joinedAt).toLocaleDateString(lang() === "de" ? "de-CH" : "fr-CH", { year: "numeric", month: "long" })}</td>
+            <td>
+              ${fmtDate(m.joinedAt)}
+              ${m.status !== "actif" ? `<br><span class="pill ${st.cls}" style="margin-top:4px;display:inline-block;">${st[lang()]}</span>` : ""}
+            </td>
             <td><a href="mailto:${escapeHtml(m.email)}" style="color:#1a2845;text-decoration:none;border-bottom:1px solid currentColor;">${escapeHtml(m.email)}</a></td>
           </tr>
-        `).join("");
+          `;
+        }).join("");
       }
 
       // ---- Registrations ----

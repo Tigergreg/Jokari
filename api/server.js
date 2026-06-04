@@ -48,6 +48,61 @@ function fireAndForget(promise, label) {
   Promise.resolve(promise).catch(err => console.error(`[fire-and-forget] ${label}:`, err.message));
 }
 
+// Normalise une date arbitraire en format ISO YYYY-MM-DD (ou null si non parseable)
+// Gère : "2026-04-29", "2026_04_29", "2026/04/29", Firestore Timestamp, Date, ISO string.
+function normalizeDate(value) {
+  if (!value) return null;
+  // Firestore Timestamp (objet avec .toDate())
+  if (typeof value === "object" && typeof value.toDate === "function") {
+    try { return value.toDate().toISOString().slice(0, 10); } catch (e) { return null; }
+  }
+  // Date instance
+  if (value instanceof Date) {
+    return isNaN(value) ? null : value.toISOString().slice(0, 10);
+  }
+  if (typeof value !== "string") return null;
+  const v = value.trim();
+  // Remplacer underscores et slashes par des tirets
+  const normalized = v.replace(/[_/.]/g, "-");
+  // Match YYYY-MM-DD (avec d'éventuelles parties en trop type "T00:00:00")
+  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    return `${match[1]}-${match[2]}-${match[3]}`;
+  }
+  // Tentative de parse via Date()
+  const d = new Date(v);
+  if (!isNaN(d)) return d.toISOString().slice(0, 10);
+  return null;
+}
+
+// Normalise un membre Firestore vers un format cohérent pour le frontend
+// Gère les 2 schémas : ancien (prenom/nom/statut/type_membre) + nouveau (firstName/lastName/status/memberType)
+// IMPORTANT: le frontend attend role="bureau" pour les admins.
+//   - jobTitle = titre métier (président, vice-présidente) — depuis le champ Firestore "role"
+//   - role     = niveau d'accès frontend ("bureau" si admin, sinon "member") — dérivé de accesslevel
+function normalizeMemberOutput(id, data) {
+  const accesslevel = (data.accesslevel || data.accessLevel || "member").toLowerCase();
+  const frontendRole = (accesslevel === "admin" || accesslevel === "bureau") ? "bureau" : "member";
+  return {
+    id,
+    firstName: data.firstName || data.prenom || "",
+    lastName:  data.lastName  || data.nom    || "",
+    email:     data.email     || "",
+    phone:     data.phone     || data.telephone || "",
+    memberType: data.memberType || data.type_membre || "actif",
+    status:     data.status     || data.statut      || "pending",
+    role:        frontendRole,                                  // "bureau" | "member" (pour affichage badge)
+    jobTitle:    data.role || null,                              // titre métier (président, vice-présidente)
+    accesslevel: accesslevel,                                    // raw Firestore field
+    joinedAt:   normalizeDate(data.date_adhesion || data.joinedAt || data.createdAt),
+    birthDate:  normalizeDate(data.birthDate || data.date_de_naissance),
+    address:    data.address || data.adresse || "",
+    zip:        data.zip     || data.npa     || "",
+    city:       data.city    || data.ville   || "",
+    cotisationPayee: (data.cotisation_payee === "true" || data.cotisation_payee === true || data.cotisationPayee === true) || false,
+  };
+}
+
 // ---- Health ----
 app.get("/api/health", (req, res) => res.json({
   ok: true,
@@ -354,11 +409,19 @@ app.get("/api/my-articles", auth.requireAuth, async (req, res) => {
 // ADMIN endpoints — Bureau only
 // ============================================================
 
-// Tous les membres (bureau only)
+// Tous les membres (bureau only) — sortie normalisée pour le frontend
 app.get("/api/admin/members", auth.requireBureau, async (req, res) => {
   try {
     const snap = await db.collection("members").get();
-    const members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const members = snap.docs.map(d => normalizeMemberOutput(d.id, d.data()));
+    // Tri : actifs en premier, puis pending, puis le reste, et par nom alpha
+    members.sort((a, b) => {
+      const statusOrder = { actif: 0, pending: 1 };
+      const sa = statusOrder[a.status] ?? 2;
+      const sb = statusOrder[b.status] ?? 2;
+      if (sa !== sb) return sa - sb;
+      return (a.lastName + a.firstName).localeCompare(b.lastName + b.firstName);
+    });
     res.json({ ok: true, members });
   } catch (err) {
     console.error(err);
