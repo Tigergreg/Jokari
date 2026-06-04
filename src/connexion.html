@@ -462,11 +462,19 @@
         return true;
       }
 
-      document.addEventListener("DOMContentLoaded", () => {
-        // Auto-verify if ?token= in URL
+      document.addEventListener("DOMContentLoaded", async () => {
+        // Auto-verify if ?token= in URL (priorité absolue, même sans attendre la session)
         const params = new URLSearchParams(location.search);
         const token = params.get("token");
         if (token) { handleVerify(token); return; }
+
+        // Attendre que la session initiale soit chargée avant d'afficher la page
+        try {
+          if (window.JokariAPI.sessionReady) {
+            await window.JokariAPI.sessionReady;
+          }
+        } catch (e) { /* ignore */ }
+
         // Already logged in?
         if (showLoggedIn()) return;
         // Default: show form
