@@ -316,26 +316,38 @@ app.post("/api/registrations", async (req, res) => {
     requireFields(b, ["fullName", "email", "eventId"]);
     if (!isEmail(b.email)) throw Object.assign(new Error("Invalid email"), { status: 400 });
 
+    // Récupérer l'event pour stocker un snapshot des infos importantes
+    let ev = null;
+    try { ev = await getEvent(b.eventId); } catch (_) { /* ignore */ }
+
+    const participants = parseInt(b.participants || "1", 10);
+    const price = ev ? parseFloat(ev.price || 0) : 0;
+
     const regData = {
+      // Membre (anciens noms gardés pour rétrocompat)
       fullName: b.fullName,
+      memberName: b.fullName,
       email: b.email,
+      memberEmail: b.email,
       phone: b.phone || null,
+      // Event
       eventId: b.eventId,
-      participants: parseInt(b.participants || "1", 10),
+      eventTitle: ev ? ev.title : b.eventId,
+      eventDate:  ev ? (ev.dateFr || ev.date) : "",
+      // Inscription
+      participants,
+      amount: price * participants,
       status: "pending-payment",
+      // Friend (optionnel)
+      friendName:  b.friendName  || null,
+      friendEmail: b.friendEmail || null,
     };
 
     const out = await saveDocument("registrations", regData);
     const regWithId = { ...regData, id: out.id };
 
-    let eventTitle = b.eventId;
-    try {
-      const ev = await getEvent(b.eventId);
-      if (ev && ev.title) eventTitle = ev.title;
-    } catch (_) { /* ignore */ }
-
-    fireAndForget(mailer.sendRegistrationConfirmation(regWithId, eventTitle), "registration-confirmation");
-    fireAndForget(mailer.sendRegistrationAdminNotification(regWithId, eventTitle), "registration-admin-notification");
+    fireAndForget(mailer.sendRegistrationConfirmation(regWithId, regData.eventTitle), "registration-confirmation");
+    fireAndForget(mailer.sendRegistrationAdminNotification(regWithId, regData.eventTitle), "registration-admin-notification");
 
     res.json({ ok: true, id: out.id });
   } catch (err) {
@@ -379,14 +391,46 @@ app.post("/api/contact", async (req, res) => {
 // PROTECTED endpoints — Espace membre
 // ============================================================
 
-// Inscriptions de l'utilisateur connecté
+// Inscriptions de l'utilisateur connecté (enrichies avec infos d'event)
 app.get("/api/my-registrations", auth.requireAuth, async (req, res) => {
   try {
     const email = req.user.email;
     const snap = await db.collection("registrations")
       .where("email", "==", email)
       .get();
-    const registrations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const rawRegs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Joindre avec les events pour avoir titre/date/prix
+    const events = await listEvents();
+    const eventMap = {};
+    for (const ev of events) eventMap[ev.id] = ev;
+
+    const registrations = rawRegs.map(r => {
+      const ev = eventMap[r.eventId] || {};
+      const participants = parseInt(r.participants || 1, 10);
+      const price = parseFloat(ev.price || 0);
+      return {
+        id: r.id,
+        eventId:     r.eventId || null,
+        eventTitle:  r.eventTitle  || ev.title    || r.eventId || "—",
+        eventTitleDe: ev.titleDe || ev.title || r.eventId || "—",
+        eventDate:   r.eventDate   || ev.dateFr   || ev.date    || "",
+        eventDateDe: ev.dateDe || ev.date || "",
+        eventLocation: ev.location || "",
+        participants,
+        amount: r.amount !== undefined ? parseFloat(r.amount) : (price * participants),
+        status: r.status || "pending-payment",
+        createdAt: r.createdAt || null,
+      };
+    });
+
+    // Tri : les plus récentes d'abord
+    registrations.sort((a, b) => {
+      const ta = a.createdAt && a.createdAt._seconds ? a.createdAt._seconds : 0;
+      const tb = b.createdAt && b.createdAt._seconds ? b.createdAt._seconds : 0;
+      return tb - ta;
+    });
+
     res.json({ ok: true, registrations });
   } catch (err) {
     console.error(err);
@@ -429,11 +473,50 @@ app.get("/api/admin/members", auth.requireBureau, async (req, res) => {
   }
 });
 
-// Toutes les inscriptions (bureau only)
+// Toutes les inscriptions (bureau only) — enrichies avec les infos d'event
 app.get("/api/admin/registrations", auth.requireBureau, async (req, res) => {
   try {
     const snap = await db.collection("registrations").get();
-    const registrations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const rawRegs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Charger tous les events en une fois (cache local) pour enrichir les inscriptions
+    const events = await listEvents();
+    const eventMap = {};
+    for (const ev of events) eventMap[ev.id] = ev;
+
+    const registrations = rawRegs.map(r => {
+      const ev = eventMap[r.eventId] || {};
+      const participants = parseInt(r.participants || 1, 10);
+      const price = parseFloat(ev.price || 0);
+      return {
+        id: r.id,
+        // Membre
+        memberName:  r.memberName  || r.fullName || "—",
+        memberEmail: r.memberEmail || r.email    || "",
+        memberPhone: r.phone       || "",
+        // Event (joint depuis la collection events)
+        eventId:     r.eventId     || null,
+        eventTitle:  r.eventTitle  || ev.title    || r.eventId || "—",
+        eventDate:   r.eventDate   || ev.dateFr   || ev.date    || "",
+        // Inscription
+        participants,
+        amount: r.amount !== undefined ? parseFloat(r.amount) : (price * participants),
+        status: r.status || "pending-payment",
+        // Friend (si présent)
+        friendName:  r.friendName  || null,
+        friendEmail: r.friendEmail || null,
+        // Meta
+        createdAt: r.createdAt || null,
+      };
+    });
+
+    // Tri : les plus récentes en premier
+    registrations.sort((a, b) => {
+      const ta = a.createdAt && a.createdAt._seconds ? a.createdAt._seconds : 0;
+      const tb = b.createdAt && b.createdAt._seconds ? b.createdAt._seconds : 0;
+      return tb - ta;
+    });
+
     res.json({ ok: true, registrations });
   } catch (err) {
     console.error(err);
