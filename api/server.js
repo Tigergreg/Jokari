@@ -2,6 +2,7 @@
 const express = require("express");
 const cors = require("cors");
 const { listEvents, getEvent, listNews, getNewsItem, listArticles, getArticle, saveDocument } = require("./firestore");
+const mailer = require("./mailer");
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "3000", 10);
@@ -36,8 +37,13 @@ function isEmail(s) {
   return typeof s === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 }
 
+// Helper: fire-and-forget — n'attend pas et ne fait jamais échouer la requête
+function fireAndForget(promise, label) {
+  Promise.resolve(promise).catch(err => console.error(`[fire-and-forget] ${label}:`, err.message));
+}
+
 // ---- Health ----
-app.get("/api/health", (req, res) => res.json({ ok: true, ts: Date.now() }));
+app.get("/api/health", (req, res) => res.json({ ok: true, ts: Date.now(), mailer: mailer.isEnabled() }));
 
 // ---- GET /api/events ----
 app.get("/api/events", async (req, res) => {
@@ -95,7 +101,7 @@ app.post("/api/members", async (req, res) => {
       throw Object.assign(new Error("Invalid memberType"), { status: 400 });
     if (!b.acceptStatuts) throw Object.assign(new Error("Statuts non acceptés"), { status: 400 });
 
-    const out = await saveDocument("members", {
+    const memberData = {
       firstName: b.firstName,
       lastName: b.lastName,
       email: b.email,
@@ -108,12 +114,19 @@ app.post("/api/members", async (req, res) => {
       acceptStatuts: !!b.acceptStatuts,
       acceptNewsletter: !!b.acceptNewsletter,
       status: "pending",
-    });
+    };
+
+    const out = await saveDocument("members", memberData);
+    const memberWithId = { ...memberData, id: out.id };
 
     // Optional: enrol on newsletter too
     if (b.acceptNewsletter && isEmail(b.email)) {
       await saveDocument("newsletter", { email: b.email, source: "member-form" }).catch(() => {});
     }
+
+    // Emails — fire-and-forget pour ne jamais bloquer la réponse
+    fireAndForget(mailer.sendMemberConfirmation(memberWithId), "member-confirmation");
+    fireAndForget(mailer.sendMemberAdminNotification(memberWithId), "member-admin-notification");
 
     res.json({ ok: true, id: out.id });
   } catch (err) {
@@ -129,14 +142,28 @@ app.post("/api/registrations", async (req, res) => {
     requireFields(b, ["fullName", "email", "eventId"]);
     if (!isEmail(b.email)) throw Object.assign(new Error("Invalid email"), { status: 400 });
 
-    const out = await saveDocument("registrations", {
+    const regData = {
       fullName: b.fullName,
       email: b.email,
       phone: b.phone || null,
       eventId: b.eventId,
       participants: parseInt(b.participants || "1", 10),
       status: "pending-payment",
-    });
+    };
+
+    const out = await saveDocument("registrations", regData);
+    const regWithId = { ...regData, id: out.id };
+
+    // Tente de récupérer le titre de l'événement pour un mail plus parlant
+    let eventTitle = b.eventId;
+    try {
+      const ev = await getEvent(b.eventId);
+      if (ev && ev.title) eventTitle = ev.title;
+    } catch (_) { /* ignore */ }
+
+    fireAndForget(mailer.sendRegistrationConfirmation(regWithId, eventTitle), "registration-confirmation");
+    fireAndForget(mailer.sendRegistrationAdminNotification(regWithId, eventTitle), "registration-admin-notification");
+
     res.json({ ok: true, id: out.id });
   } catch (err) {
     console.error(err);
@@ -150,6 +177,9 @@ app.post("/api/newsletter", async (req, res) => {
     const b = req.body || {};
     if (!isEmail(b.email)) throw Object.assign(new Error("Invalid email"), { status: 400 });
     const out = await saveDocument("newsletter", { email: b.email, source: b.source || "site" });
+
+    fireAndForget(mailer.sendNewsletterConfirmation(b.email), "newsletter-confirmation");
+
     res.json({ ok: true, id: out.id });
   } catch (err) {
     console.error(err);
@@ -163,9 +193,14 @@ app.post("/api/contact", async (req, res) => {
     const b = req.body || {};
     requireFields(b, ["name", "email", "subject", "message"]);
     if (!isEmail(b.email)) throw Object.assign(new Error("Invalid email"), { status: 400 });
-    const out = await saveDocument("contact_messages", {
+    const msgData = {
       name: b.name, email: b.email, subject: b.subject, message: b.message,
-    });
+    };
+    const out = await saveDocument("contact_messages", msgData);
+
+    fireAndForget(mailer.sendContactAcknowledgement(msgData), "contact-acknowledgement");
+    fireAndForget(mailer.sendContactAdminNotification(msgData), "contact-admin-notification");
+
     res.json({ ok: true, id: out.id });
   } catch (err) {
     console.error(err);
@@ -176,5 +211,5 @@ app.post("/api/contact", async (req, res) => {
 app.use((req, res) => res.status(404).json({ ok: false, error: "Not found" }));
 
 app.listen(PORT, () => {
-  console.log(`[jokari-api] listening on :${PORT}`);
+  console.log(`[jokari-api] listening on :${PORT} — mailer ${mailer.isEnabled() ? "ON" : "OFF"}`);
 });
