@@ -47,6 +47,11 @@ jobs:
           docker push $IMAGE:latest
 
       - name: Deploy to Cloud Run
+        env:
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          JOKARI_FROM_EMAIL: ${{ secrets.JOKARI_FROM_EMAIL }}
+          JOKARI_FROM_NAME: ${{ secrets.JOKARI_FROM_NAME }}
+          JOKARI_ADMIN_EMAILS: ${{ secrets.JOKARI_ADMIN_EMAILS }}
         run: |
           gcloud run deploy $SERVICE \
             --image=$IMAGE:${{ github.sha }} \
@@ -58,7 +63,7 @@ jobs:
             --cpu=1 \
             --min-instances=0 \
             --max-instances=10 \
-            --set-env-vars=GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }},NODE_ENV=production
+            --set-env-vars=^@^GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}@NODE_ENV=production@SENDGRID_API_KEY=${SENDGRID_API_KEY}@JOKARI_FROM_EMAIL=${JOKARI_FROM_EMAIL}@JOKARI_FROM_NAME=${JOKARI_FROM_NAME}@JOKARI_ADMIN_EMAILS=${JOKARI_ADMIN_EMAILS}
 
       - name: Show service URL
         run: |
