@@ -696,20 +696,8 @@
           ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c]);
       }
 
-      // ---- Auth: must be bureau role ----
-      const session = window.JokariAPI.getSession();
-      if (!session) {
-        $("auth-msg").innerHTML = lang() === "de"
-          ? `Bitte zuerst <a href="connexion.html">anmelden</a>.`
-          : `Veuillez d'abord <a href="connexion.html">vous connecter</a>.`;
-        return;
-      }
-      if (session.role !== "bureau") {
-        $("auth-msg").innerHTML = lang() === "de"
-          ? `Dieser Bereich ist dem Vorstand vorbehalten. <a href="espace-membre.html">Zurück</a>`
-          : `Cette zone est réservée au bureau. <a href="espace-membre.html">Retour</a>`;
-        return;
-      }
+      // ---- Auth: must be bureau role ---- (déplacé dans DOMContentLoaded pour attendre sessionReady)
+      let session = null;
 
       // ---- Tabs ----
       function activateTab(name) {
@@ -944,7 +932,29 @@
       }
 
       // ---- Init ----
-      document.addEventListener("DOMContentLoaded", () => {
+      document.addEventListener("DOMContentLoaded", async () => {
+        // Attendre que la session initiale soit chargée
+        try {
+          if (window.JokariAPI.sessionReady) {
+            await window.JokariAPI.sessionReady;
+          }
+        } catch (e) { /* ignore */ }
+
+        // Vérifier la session APRÈS chargement
+        session = window.JokariAPI.getSession();
+        if (!session) {
+          $("auth-msg").innerHTML = lang() === "de"
+            ? `Bitte zuerst <a href="connexion.html">anmelden</a>.`
+            : `Veuillez d'abord <a href="connexion.html">vous connecter</a>.`;
+          return;
+        }
+        if (session.role !== "bureau") {
+          $("auth-msg").innerHTML = lang() === "de"
+            ? `Dieser Bereich ist dem Vorstand vorbehalten. <a href="espace-membre.html">Zurück</a>`
+            : `Cette zone est réservée au bureau. <a href="espace-membre.html">Retour</a>`;
+          return;
+        }
+
         document.querySelectorAll(".tab").forEach(t => {
           t.addEventListener("click", () => activateTab(t.dataset.tab));
         });

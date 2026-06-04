@@ -587,13 +587,8 @@
       const $ = id => document.getElementById(id);
       const lang = () => (localStorage.getItem("jokari-lang") || "fr");
 
-      // ---- Auth guard ----
-      const session = window.JokariAPI.getSession();
-      if (!session) {
-        // No session → redirect to login
-        setTimeout(() => { location.href = "connexion.html"; }, 400);
-        return;
-      }
+      // ---- Auth guard ---- (déplacé dans DOMContentLoaded pour attendre sessionReady)
+      let session = null;
 
       // ---- Categories label map ----
       const catLabels = {
@@ -832,7 +827,21 @@
         });
       }
 
-      document.addEventListener("DOMContentLoaded", () => {
+      document.addEventListener("DOMContentLoaded", async () => {
+        // Attendre que la session initiale soit chargée
+        try {
+          if (window.JokariAPI.sessionReady) {
+            await window.JokariAPI.sessionReady;
+          }
+        } catch (e) { /* ignore */ }
+
+        // Vérifier la session APRÈS chargement
+        session = window.JokariAPI.getSession();
+        if (!session) {
+          setTimeout(() => { location.href = "connexion.html"; }, 400);
+          return;
+        }
+
         wireCompose();
         wireLogout();
         loadAll();
