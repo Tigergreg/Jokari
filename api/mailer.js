@@ -22,7 +22,9 @@ if (ENABLED) {
 }
 
 // ---- Helper bas-niveau ----
-async function send({ to, subject, text, html, replyTo }) {
+// Si disableTracking=true, désactive le click tracking SendGrid (utile pour les magic links
+// qui doivent pointer directement sur jokari.ch sans passer par url7025.jokari.ch).
+async function send({ to, subject, text, html, replyTo, disableTracking }) {
   if (!ENABLED) {
     console.warn(`[mailer] skipped (disabled): to=${to}, subject="${subject}"`);
     return { skipped: true };
@@ -39,6 +41,12 @@ async function send({ to, subject, text, html, replyTo }) {
     text,
     html: html || `<p>${(text || "").replace(/\n/g, "<br>")}</p>`,
   };
+  if (disableTracking) {
+    msg.trackingSettings = {
+      clickTracking: { enable: false, enableText: false },
+      openTracking: { enable: false },
+    };
+  }
   try {
     const [response] = await sgMail.send(msg);
     console.log(`[mailer] sent OK — to=${Array.isArray(to) ? to.join(",") : to}, status=${response.statusCode}`);
@@ -54,6 +62,7 @@ async function send({ to, subject, text, html, replyTo }) {
 // ====================================================================
 
 // ---- Magic link (connexion espace membre) ----
+// disableTracking: true pour que le bouton pointe directement sur jokari.ch
 async function sendMagicLink(email, link, firstName) {
   const greeting = firstName ? `Bonjour ${firstName},` : "Bonjour,";
   const subject = "Votre lien de connexion au Jokari Club Zürich";
@@ -95,7 +104,7 @@ contact@jokari.ch | www.jokari.ch`;
   </p>
 </div>`;
 
-  return send({ to: email, subject, text, html });
+  return send({ to: email, subject, text, html, disableTracking: true });
 }
 
 // ---- Adhésion ----
